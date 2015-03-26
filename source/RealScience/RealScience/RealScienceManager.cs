@@ -36,6 +36,12 @@ namespace RealScience
             base.Start();
             StartCoroutine("AddToToolbar");
             RealScience.Resources.LoadTextures();
+            DragEnabled = false;
+            ClampToScreen = true;
+            TooltipsEnabled = true;
+            TooltipMouseOffset = new Vector2d(10, 10);
+            TooltipStatic = true;
+            WindowCaption = "";
         }
 
         IEnumerator AddToToolbar()
