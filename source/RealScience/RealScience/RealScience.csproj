@@ -9,8 +9,10 @@
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>RealScience</RootNamespace>
     <AssemblyName>RealScience</AssemblyName>
-    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -40,7 +42,6 @@
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine">
@@ -48,8 +49,22 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="FrameworkExt\ClassDefinitions.cs" />
+    <Compile Include="FrameworkExt\Extensions.cs" />
+    <Compile Include="FrameworkExt\ExtensionsKSP.cs" />
+    <Compile Include="FrameworkExt\MonoBehaviourWindowPlus.cs" />
+    <Compile Include="Framework\ConfigNodeStorage.cs" />
+    <Compile Include="Framework\ExtensionsUnity.cs" />
+    <Compile Include="Framework\MonoBehaviourExtended.cs" />
+    <Compile Include="Framework\MonoBehaviourWindow.cs" />
+    <Compile Include="Framework\PartModuleExtended.cs" />
+    <Compile Include="Framework\SkinsLibrary.cs" />
     <Compile Include="RealScienceExperiment.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RealScienceManager.cs" />
+    <Compile Include="Resources.cs" />
+    <Compile Include="StylesAndSkins.cs" />
+    <Compile Include="UserSettings.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

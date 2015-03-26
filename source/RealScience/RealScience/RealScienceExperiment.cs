@@ -1,27 +1,68 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
+using KSPPluginFramework;
 
 using UnityEngine;
 
 namespace RealScience
 {
-    public enum ExperimentState
+    public class ExperimentState
     {
-        UNKNOWN = -1,
-        IDLE,
-        PAUSED,
-        PAUSED_CONNECTION,
-        RESEARCHING,
-        RESEARCH_COMPLETE,
-        ANALYZING,
-        FAILED,
-        COMPLETED
+        public enum StateEnum
+        {
+            UNKNOWN = -1,
+            IDLE,
+            PAUSED,
+            PAUSED_CONNECTION,
+            RESEARCHING,
+            RESEARCH_COMPLETE,
+            ANALYZING,
+            ANALYSIS_COMPLETE,
+            READY_TO_TRANSMIT,
+            START_TRANSMIT,
+            TRANSMITTING,
+            TRANSMIT_COMPLETE,
+            FAILED,
+            COMPLETED
+        }
+
+        private StateEnum currentState = StateEnum.UNKNOWN;
+        public StateEnum CurrentState
+        {
+            get { return currentState; }
+            set { currentState = value; }
+        }
+
+        public ExperimentState()
+        {
+            currentState = StateEnum.UNKNOWN;
+        }
+
+        public override string ToString()
+        {
+            return string.Format("{0:D}", (int)currentState);
+        }
+
+        public static ExperimentState FromStrimg(string stateString)
+        {
+            ExperimentState newState = new ExperimentState();
+            StateEnum state = (StateEnum)int.Parse(stateString);
+            newState.CurrentState = state;
+            return newState;
+        }
     }
 
-    public class RealScienceExperiment : PartModule
+    public interface IScienceCondition : IConfigNode
+    {
+        float DataRateModifier
+        { get; }
+        bool Evaluate(Part part);
+    }
+
+    public class RealScienceExperiment : PartModuleExtended
     {
 
         [KSPField(isPersistant = false)]
@@ -31,7 +72,7 @@ namespace RealScience
         [KSPField(isPersistant = false)]
         public string description;
         [KSPField(isPersistant = false)]
-        public string discipline;
+        public string discipline = "science";
         [KSPField(isPersistant = false)]
         public float requiredData = 0f;
         [KSPField(isPersistant = false)]
@@ -41,17 +82,42 @@ namespace RealScience
         [KSPField(isPersistant = false)]
         public float scienceValue = 0f;
         [KSPField(isPersistant = false)]
-        public float dataRate = 1f;
+        public float researchDataRate = 1f;
+        [KSPField(isPersistant = false)]
+        public bool multiFlight = false;
+        [KSPField(isPersistant = false)]
+        public bool onRails = false;
+        [KSPField(isPersistant = false)]
+        public bool autoAnalyze = true;
+        [KSPField(isPersistant = false)]
+        public bool autoTransmit = true;
+        [KSPField(isPersistant = false)]
+        public float dataSize = 0f;
 
-        List<RealScienceCondition> conditions;
+        List<IScienceCondition> conditions;
         List<RealScienceConditionGroup> conditionGroups;
+        public ExperimentState state;
+        bool loaded = false;
 
-        protected float currentData = 0f;
-        protected double AnalysisTimeRemaining = 0f;
-        protected ExperimentState currentState = ExperimentState.UNKNOWN;
-        protected double lastMET = 0;
+        [KSPField(isPersistant = true)]
+        public float currentData = 0f;
+        [KSPField(isPersistant = true)]
+        public float analysisTimeRemaining = 0f;
+        [KSPField(isPersistant = true)]
+        public float lastMET = 0f;
+        [KSPField(isPersistant = true)]
+        public float transmittedPackets = 0f;
+        // DataRate is how many packets per second
+        [KSPField(isPersistant = true)]
+        public float transmissionDataRate = 1f;
+        // DataResourceCost is how much Electric Charge per packet
+        [KSPField(isPersistant = true)]
+        public float transmissionDataResourceCost = 1f;
+        [KSPField(isPersistant = true)]
+        public float quedPackets = 0f;
 
-        public void Start()
+
+        public override void Start()
         {
             // We need to re-load our data from the prefab
             Part prefab = this.part.partInfo.partPrefab;
@@ -68,45 +134,145 @@ namespace RealScience
                     analysisTime = modulePrefab.analysisTime;
                     value = modulePrefab.value;
                     scienceValue = modulePrefab.scienceValue;
-                    dataRate = modulePrefab.dataRate;
+                    researchDataRate = modulePrefab.researchDataRate;
                     conditions = modulePrefab.conditions;
                     conditionGroups = modulePrefab.conditionGroups;
                 }
             }
-            currentData = 0f;
-            AnalysisTimeRemaining = analysisTime;
-            currentState = ExperimentState.IDLE;
-            lastMET = this.vessel.missionTime;
+            // In case OnLoad never happened, we need to properly intialize our values
+            if (!loaded)
+            {
+                analysisTimeRemaining = analysisTime;
+                lastMET = (float)this.vessel.missionTime;
+                state = new ExperimentState();
+                state.CurrentState = ExperimentState.StateEnum.IDLE;
+            }
         }
 
         public override void OnUpdate()
         {
             base.OnUpdate();
-            double currentMET = this.vessel.missionTime;
+            float currentMET = (float)this.vessel.missionTime;
 
-            switch (currentState)
+            switch (state.CurrentState)
             {
-                case ExperimentState.ANALYZING:
-                    AnalysisTimeRemaining -= (lastMET - currentMET);
-                    if (AnalysisTimeRemaining <= 0)
+                case ExperimentState.StateEnum.ANALYZING:
+                    analysisTimeRemaining -= (currentMET - lastMET);
+                    if (analysisTimeRemaining <= 0)
+                        state.CurrentState = ExperimentState.StateEnum.ANALYSIS_COMPLETE;
+                    break;
+                case ExperimentState.StateEnum.ANALYSIS_COMPLETE:
+                    state.CurrentState = ExperimentState.StateEnum.READY_TO_TRANSMIT;
+                    break;
+                case ExperimentState.StateEnum.READY_TO_TRANSMIT:
+                    if (autoTransmit)
                     {
-                        currentState = ExperimentState.COMPLETED;
-                        // TODO award science points
+                        state.CurrentState = ExperimentState.StateEnum.START_TRANSMIT;
                     }
                     break;
-                case ExperimentState.FAILED:
+                case ExperimentState.StateEnum.START_TRANSMIT:
+                    // find an antenna
+                    List<IScienceDataTransmitter> antennas = part.FindModulesImplementing<IScienceDataTransmitter>();
+                    float dataRate = 0f;
+                    double resourceCost = double.MaxValue;
+                    bool favorLowPowerAntenna = true;
+                    IScienceDataTransmitter chosenTransmitter = null;
+                    if (RealScienceManager.Instance != null)
+                        favorLowPowerAntenna = RealScienceManager.Instance.userSettings.favorLowPowerAntenna;
+                    foreach(IScienceDataTransmitter transmitter in antennas)
+                    {
+                        if (favorLowPowerAntenna)
+                        {
+                            if (transmitter.DataResourceCost < resourceCost)
+                            {
+                                resourceCost = transmitter.DataResourceCost;
+                                chosenTransmitter = transmitter;
+                            }
+                        }
+                        else
+                        {
+                            if (transmitter.DataRate > dataRate)
+                            {
+                                dataRate = transmitter.DataRate;
+                                chosenTransmitter = transmitter;
+                            }
+                        }
+                    }
+                    if (chosenTransmitter == null)
+                        break;
+                    if (chosenTransmitter.IsBusy())
+                        break;
+                    // Shouldn't be needed, but as a last safety measure we find all experiments on the craft and check that none are transmitting
+                    foreach(Part vPart in this.vessel.Parts)
+                    {
+                        foreach(PartModule pm in vPart.Modules)
+                        {
+                            RealScienceExperiment vExperiment = pm as RealScienceExperiment;
+                            if (vExperiment != null)
+                            {
+                                if (vExperiment.state.CurrentState == ExperimentState.StateEnum.TRANSMITTING)
+                                    break;
+                            }
+                        }
+                    }
+                    transmissionDataRate = chosenTransmitter.DataRate;
+                    transmissionDataResourceCost = (float)chosenTransmitter.DataResourceCost;
+                    transmittedPackets = 0f;
+
+                    ScreenMessages.PostScreenMessage(String.Format("[{0}]: Starting Transmission...", experimentTitle), 5f, ScreenMessageStyle.UPPER_LEFT);
+                    state.CurrentState = ExperimentState.StateEnum.TRANSMITTING;
                     break;
-                case ExperimentState.IDLE:
+                case ExperimentState.StateEnum.TRANSMITTING:
+                    float sciencePerPacket = scienceValue / dataSize;
+                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}", transmittedPackets));
+                    if (transmittedPackets >= dataSize)
+                    {
+                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: Transmission Complete.  Changing state."));
+                        state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
+                        break;
+                    }
+                    float deltaTime = currentMET - lastMET;
+                    quedPackets += transmissionDataRate * deltaTime;
+                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: deltaTime={0:F2}, quedPackets={1:F2}", deltaTime, quedPackets));
+                    // This just ensures we don't transmit too much
+                    if (transmittedPackets + quedPackets > dataSize)
+                    {
+                        quedPackets = dataSize - transmittedPackets;
+                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: adjusted quedPackets={0:F2}", quedPackets));
+                    }
+                    if (quedPackets < 1f && transmittedPackets + quedPackets < dataSize)
+                    {
+                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: Waiting until we can send a whole packet."));
+                        break;
+                    }
+                    transmittedPackets += quedPackets;
+                    ResearchAndDevelopment.Instance.AddScience(sciencePerPacket * quedPackets, TransactionReasons.ScienceTransmission);
+                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
+                    ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
+                    ScreenMessages.PostScreenMessage(statusMessage, true);
+                    quedPackets = 0f;
                     break;
-                case ExperimentState.PAUSED:
+                case ExperimentState.StateEnum.TRANSMIT_COMPLETE:
+                    // science is awarded by the transmission, so we don't need to do it here
+                    // ResearchAndDevelopment.Instance.AddScience(scienceValue, TransactionReasons.ScienceTransmission);
+                    ScreenMessage completionMessage = new ScreenMessage(String.Format("[{0}]: Transmission Completed", experimentTitle), 5.0f, ScreenMessageStyle.UPPER_LEFT);
+                    ScreenMessages.PostScreenMessage(completionMessage, true);
+                    state.CurrentState = ExperimentState.StateEnum.COMPLETED;
                     break;
-                case ExperimentState.PAUSED_CONNECTION:
+                case ExperimentState.StateEnum.FAILED:
                     break;
-                case ExperimentState.RESEARCHING:
+                case ExperimentState.StateEnum.IDLE:
+                    break;
+                case ExperimentState.StateEnum.PAUSED:
+                    break;
+                case ExperimentState.StateEnum.PAUSED_CONNECTION:
+                    break;
+                case ExperimentState.StateEnum.RESEARCHING:
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
                     if (currentData >= requiredData)
                     {
-                        currentState = ExperimentState.RESEARCH_COMPLETE;
+                        state.CurrentState = ExperimentState.StateEnum.RESEARCH_COMPLETE;
+                        break;
                     }
                     // Evaluate each group or condition and if they are all true, add research data
                     else
@@ -116,12 +282,12 @@ namespace RealScience
                         if (conditionGroups == null || conditionGroups.Count == 0)
                         {
                             // No valid groups so we evaluate each condition instead
-                            foreach (RealScienceCondition condition in conditions)
+                            foreach (IScienceCondition condition in conditions)
                             {
                                 if (!condition.Evaluate(this.part))
                                     conditionsValid = false;
                                 else
-                                    totalDataRateModifier *= condition.dataRateModifier;
+                                    totalDataRateModifier *= condition.DataRateModifier;
                             }
                         }
                         else
@@ -138,28 +304,98 @@ namespace RealScience
 
                         if (conditionsValid)
                         {
-                            float currentDataRate = dataRate * totalDataRateModifier;
-                            currentData = currentData + (currentDataRate * ((float)lastMET - (float)currentMET));
+                            float currentDataRate = researchDataRate * totalDataRateModifier;
+                            currentData = currentData + (currentDataRate * (currentMET - lastMET));
                         }
                     }
                     break;
-                case ExperimentState.UNKNOWN:
+                case ExperimentState.StateEnum.RESEARCH_COMPLETE:
+                    if (autoAnalyze)
+                        state.CurrentState = ExperimentState.StateEnum.ANALYZING;
+                    break;
+                case ExperimentState.StateEnum.UNKNOWN:
                     break;
             }
+            lastMET = currentMET;
         }
 
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
+            if (node.HasValue("state"))
+            {
+                state = ExperimentState.FromStrimg(node.GetValue("state"));
+            }
+            else
+            {
+                state = new ExperimentState();
+                state.CurrentState = ExperimentState.StateEnum.IDLE;
+            }
+
+            if (!node.HasValue("analysisTimeRemaining"))
+            {
+                analysisTimeRemaining = analysisTime;
+            }
+
+            if (!node.HasValue("lastMET"))
+            {
+                if (this.vessel != null)
+                    lastMET = (float)this.vessel.missionTime;
+            }
+
+            // Load bare conditions if present
+            if (node.HasNode("condition"))
+            {
+                LogFormatted_DebugOnly("RealScience: OnLoad: Loading conditions...");
+                if (conditions == null)
+                    conditions = new List<IScienceCondition>();
+                conditions.Clear();
+                foreach(ConfigNode conditionNode in node.GetNodes("condition"))
+                {
+                    if (conditionNode.HasValue("conditionType"))
+                    {
+                        string conditionType = conditionNode.GetValue("conditionType");
+                        LogFormatted_DebugOnly("RealScience: OnLoad: Creating condition of type: " + conditionType);
+                        RealScienceCondition newCondition = null;
+                        System.Runtime.Remoting.ObjectHandle conditionObj = null;
+                        conditionObj = Activator.CreateInstance(null, "RealScience.RealScienceCondition_" + conditionType);
+                        if (conditionObj == null)
+                            LogFormatted_DebugOnly("RealScience: OnLoad: Failed to create Condition ObjectHandle");
+                        else
+                            newCondition = (RealScienceCondition)conditionObj.Unwrap();
+                        if (newCondition != null)
+                        {
+                            newCondition.Load(conditionNode);
+                            conditions.Add(newCondition);
+                        }
+                        else
+                            LogFormatted_DebugOnly("RealScience: OnLoad: Failed to create Condition instance");
+                    }
+                }
+            }
+            // otherwise load groups
+            else if (node.HasNode("conditionGroup"))
+            {
+                if (conditionGroups == null)
+                    conditionGroups = new List<RealScienceConditionGroup>();
+                conditionGroups.Clear();
+                foreach(ConfigNode groupNode in node.GetNodes("conditionGroup"))
+                {
+                    RealScienceConditionGroup group = new RealScienceConditionGroup();
+                    group.Load(groupNode);
+                    conditionGroups.Add(group);
+                }
+            }
+            loaded = true;
         }
     }
 
-    public class RealScienceConditionGroup : ConfigNode
+    public class RealScienceConditionGroup : IConfigNode
     {
         [KSPField(isPersistant = false)]
         public string groupType = "or";
 
-        protected List<RealScienceCondition> conditions;
+        protected List<IScienceCondition> conditions;
         protected float dataRateModifier = 1f;
 
         public float DataRateModifer
@@ -171,11 +407,11 @@ namespace RealScience
         {
             if (groupType.ToLower() == "or")
             {
-                foreach (RealScienceCondition condition in conditions)
+                foreach (IScienceCondition condition in conditions)
                 {
                     if (condition.Evaluate(part))
                     {
-                        dataRateModifier *= condition.dataRateModifier;
+                        dataRateModifier *= condition.DataRateModifier;
                         return true;
                     }
                 }
@@ -184,72 +420,237 @@ namespace RealScience
             else
             {
                 bool conditionsValid = true;
-                foreach (RealScienceCondition condition in conditions)
+                foreach (IScienceCondition condition in conditions)
                 {
                     if (!condition.Evaluate(part))
                         conditionsValid = false;
-                    dataRateModifier *= condition.dataRateModifier;
+                    dataRateModifier *= condition.DataRateModifier;
                 }
                 return conditionsValid;
             }
         }
 
+        public void Load(ConfigNode node)
+        {
+            if (node.HasNode("groupType"))
+                groupType = node.GetValue("groupType");
+            if (node.HasNode("condition"))
+            {
+                foreach (ConfigNode conditionNode in node.GetNodes("condition"))
+                {
+                    if (conditionNode.HasValue("conditionType"))
+                    {
+                        string conditionType = conditionNode.GetValue("conditionType");
+                        IScienceCondition newCondition = (IScienceCondition)Activator.CreateInstance(null, "RealScience.RealScienceCondition_" + conditionType);
+                        newCondition.Load(conditionNode);
+                        conditions.Add(newCondition);
+                    }
+                }
+            }
+        }
+        public void Save(ConfigNode node)
+        {
+
+        }
     }
 
-    public class RealScienceCondition : ConfigNode
+    public class RealScienceCondition : IScienceCondition
     {
-        [KSPField(isPersistant = false)]
-        public string conditionName;
-        [KSPField(isPersistant = false)]
-        public string conditionType;
-        [KSPField(isPersistant = false)]
-        public bool restriction = false;
-        [KSPField(isPersistant = false)]
-        public bool optional = false;
-        [KSPField(isPersistant = false)]
-        public float dataRateModifier = 1f;
+        public virtual float DataRateModifier
+        {
+            get { return 1f; }
+        }
 
-        public bool Evaluate(Part part)
+        public virtual bool Evaluate(Part part)
         {
             return true;
+        }
+        public virtual void Load(ConfigNode node)
+        {
+
+        }
+        public virtual void Save(ConfigNode node)
+        {
         }
     }
 
     public class RealScienceCondition_Orbit : RealScienceCondition
     {
-        [KSPField(isPersistant = false)]
+        // common properties
+        public string conditionType = "Orbit";
+        public bool restriction = false;
+        public bool optional = false;
+        public float dataRateModifier = 1f;
+        // specific properties
         public float eccentricityMin = 0f;
-        [KSPField(isPersistant = false)]
         public float eccentricityMax = 1f;
-        [KSPField(isPersistant = false)]
         public float apoapsisMin = float.MinValue;
-        [KSPField(isPersistant = false)]
         public float apoapsisMax = float.MaxValue;
-        [KSPField(isPersistant = false)]
         public float periapsisMin = float.MinValue;
-        [KSPField(isPersistant = false)]
         public float periapsisMax = float.MaxValue;
-        [KSPField(isPersistant = false)]
         public float inclinationMin = 0f;
-        [KSPField(isPersistant = false)]
         public float inclinationMax = 180f;
-        [KSPField(isPersistant = false)]
         public float siderealMin = 0f;
-        [KSPField(isPersistant = false)]
         public float siderealMax = float.MaxValue;
+
+        public override float DataRateModifier
+        {
+            get { return dataRateModifier; }
+        }
+
+        public override bool Evaluate(Part part)
+        {
+            return true;
+        }
+        public override void Load(ConfigNode node)
+        {
+            // Load common properties
+            if (node.HasValue("conditionType"))
+                conditionType = node.GetValue("conditionType");
+            if (node.HasValue("restriction"))
+            {
+                try
+                {
+                    restriction = bool.Parse(node.GetValue("restriction"));
+                }
+                catch (FormatException)
+                {
+                    restriction = false;
+                }
+            }
+            if (node.HasValue("optional"))
+            {
+                try
+                {
+                    optional = bool.Parse(node.GetValue("optional"));
+                }
+                catch (FormatException)
+                {
+                    optional = false;
+                }
+            }
+            if (node.HasValue("dataRateModifier"))
+            {
+                try
+                {
+                    dataRateModifier = float.Parse(node.GetValue("dataRateModifier"));
+                }
+                catch (FormatException)
+                {
+                    dataRateModifier = 1f;
+                }
+            }
+            // Load specific properties
+
+        }
+        public override void Save(ConfigNode node)
+        {
+            // Save common properties
+            node.AddValue("conditionType", conditionType);
+            node.AddValue("restriction", restriction);
+            node.AddValue("optional", optional);
+            node.AddValue("dataRateModifier", dataRateModifier);
+
+        }
     }
 
     public class RealScienceCondition_Altitude : RealScienceCondition
     {
-        [KSPField(isPersistant = false)]
+        // common properties
+        public string conditionType = "Altitude";
+        public bool restriction = false;
+        public bool optional = false;
+        public float dataRateModifier = 1f;
+        // specific properties
         public float altitudeMin = 0f;
-        [KSPField(isPersistant = false)]
         public float altitudeMax = float.MaxValue;
 
-        public bool Evaluate(Part part)
+        public override float DataRateModifier
+        {
+            get { return dataRateModifier; }
+        }
+        public override bool Evaluate(Part part)
         {
             float altitude = FlightGlobals.getAltitudeAtPos(part.transform.position);
-            return altitude >= altitudeMin && altitude <= altitudeMax;
+            if (altitude >= altitudeMin && altitude <= altitudeMax)
+                return true;
+            return false;
+        }
+
+        public override void Load(ConfigNode node)
+        {
+            // Load common properties
+            if (node.HasValue("conditionType"))
+                conditionType = node.GetValue("conditionType");
+            if (node.HasValue("restriction"))
+            {
+                try
+                {
+                    restriction = bool.Parse(node.GetValue("restriction"));
+                }
+                catch (FormatException)
+                {
+                    restriction = false;
+                }
+            }
+            if (node.HasValue("optional"))
+            {
+                try
+                {
+                    optional = bool.Parse(node.GetValue("optional"));
+                }
+                catch (FormatException)
+                {
+                    optional = false;
+                }
+            }
+            if (node.HasValue("dataRateModifier"))
+            {
+                try
+                {
+                    dataRateModifier = float.Parse(node.GetValue("dataRateModifier"));
+                }
+                catch (FormatException)
+                {
+                    dataRateModifier = 1f;
+                }
+            }
+            // Load specific properties
+            if (node.HasValue("altitudeMin"))
+            {
+                try
+                {
+                    altitudeMin = float.Parse(node.GetValue("altitudeMin"));
+                }
+                catch (FormatException)
+                {
+                    altitudeMin = 0f;
+                }
+
+            }
+            if (node.HasValue("altitudeMax"))
+            {
+                try
+                {
+                    altitudeMax = float.Parse(node.GetValue("altitudeMax"));
+                }
+                catch (FormatException)
+                {
+                    altitudeMax = float.MaxValue;
+                }
+
+            }
+        }
+        public override void Save(ConfigNode node)
+        {
+            // Save common properties
+            node.AddValue("conditionType", conditionType);
+            node.AddValue("restriction", restriction);
+            node.AddValue("optional", optional);
+            node.AddValue("dataRateModifier", dataRateModifier);
+            // Save specific properties
+            node.AddValue("altitudeMin", altitudeMin);
+            node.AddValue("altitudeMax", altitudeMax);
         }
     }
 }
