@@ -11,7 +11,6 @@ namespace RealScience.Conditions
         public string conditionType = "Orbit";
         public bool restriction = false;
         public string exclusion = "";
-        public bool optional = false;
         public float dataRateModifier = 1f;
         // specific properties
         public float eccentricityMin = 0f;
@@ -80,17 +79,6 @@ namespace RealScience.Conditions
                     restriction = false;
                 }
             }
-            if (node.HasValue("optional"))
-            {
-                try
-                {
-                    optional = bool.Parse(node.GetValue("optional"));
-                }
-                catch (FormatException)
-                {
-                    optional = false;
-                }
-            }
             if (node.HasValue("dataRateModifier"))
             {
                 try
@@ -110,7 +98,6 @@ namespace RealScience.Conditions
             // Save common properties
             node.AddValue("conditionType", conditionType);
             node.AddValue("restriction", restriction);
-            node.AddValue("optional", optional);
             node.AddValue("dataRateModifier", dataRateModifier);
 
         }

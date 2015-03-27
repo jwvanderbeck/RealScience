@@ -10,7 +10,6 @@ namespace RealScience.Conditions
         public string conditionType = "Altitude";
         public bool restriction = false;
         public string exclusion = "";
-        public bool optional = false;
         public float dataRateModifier = 1f;
         // specific properties
         public float altitudeMin = 0f;
@@ -50,17 +49,6 @@ namespace RealScience.Conditions
                 catch (FormatException)
                 {
                     restriction = false;
-                }
-            }
-            if (node.HasValue("optional"))
-            {
-                try
-                {
-                    optional = bool.Parse(node.GetValue("optional"));
-                }
-                catch (FormatException)
-                {
-                    optional = false;
                 }
             }
             if (node.HasValue("dataRateModifier"))
@@ -105,7 +93,6 @@ namespace RealScience.Conditions
             // Save common properties
             node.AddValue("conditionType", conditionType);
             node.AddValue("restriction", restriction);
-            node.AddValue("optional", optional);
             node.AddValue("dataRateModifier", dataRateModifier);
             // Save specific properties
             node.AddValue("altitudeMin", altitudeMin);
