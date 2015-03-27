@@ -21,8 +21,6 @@ namespace RealScience.Conditions
         public float periapsisMax = float.MaxValue;
         public float inclinationMin = 0f;
         public float inclinationMax = 180f;
-        public float siderealMin = 0f;
-        public float siderealMax = float.MaxValue;
 
         public override float DataRateModifier
         {
@@ -31,6 +29,30 @@ namespace RealScience.Conditions
 
         public override bool Evaluate(Part part)
         {
+            if (part.vessel.orbit.eccentricity < eccentricityMin)
+                return false;
+            if (part.vessel.orbit.eccentricity > eccentricityMax)
+                return false;
+            if (part.vessel.orbit.inclination < inclinationMin)
+                return false;
+            if (part.vessel.orbit.inclination > inclinationMax)
+                return false;
+            double r_ap = part.vessel.orbit.semiMajorAxis * (1 + part.vessel.orbit.eccentricity);
+            double r_pe = part.vessel.orbit.semiMajorAxis * (1 - part.vessel.orbit.eccentricity);
+            double radius = part.vessel.orbit.referenceBody.Radius;
+            double ap = r_ap - radius;
+            double pe = r_pe - radius;
+            Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated AP, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_ap, ap, part.vessel.orbit.referenceBody.name, radius));
+            Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated PE, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_pe, pe, part.vessel.orbit.referenceBody.name, radius));
+            if ((float)ap < apoapsisMin)
+                return false;
+            if ((float)ap > apoapsisMax)
+                return false;
+            if ((float)pe < periapsisMin)
+                return false;
+            if ((float)pe > periapsisMax)
+                return false;
+
             return true;
         }
         public override void Load(ConfigNode node)
