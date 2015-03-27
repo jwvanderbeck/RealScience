@@ -131,7 +131,7 @@ namespace RealScience
             GUILayout.Label("<b>Experiment</b>", GUILayout.Width(200));
             GUILayout.Label("<b>Data</b>", GUILayout.Width(75));
             GUILayout.Label("<b>Status</b>", GUILayout.Width(100));
-            GUILayout.Label("<b>Actions</b>", GUILayout.Width(40));
+            GUILayout.Label("<b>Actions</b>", GUILayout.Width(50));
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
@@ -188,6 +188,9 @@ namespace RealScience
                                     break;
                                 case ExperimentState.StateEnum.FAILED:
                                     statusString = String.Format("<color=#dc322fff>{0,-30}</color>", "Failed");
+                                    break;
+                                case ExperimentState.StateEnum.CONDITIONS_NOT_MET:
+                                    statusString = String.Format("<color=#dc322fff>{0,-30}</color>", "Invalid Conditions");
                                     break;
                             }
                             GUILayout.Label(statusString, GUILayout.Width(100));

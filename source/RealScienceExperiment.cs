@@ -17,6 +17,7 @@ namespace RealScience
         {
             UNKNOWN = -1,
             IDLE,
+            CONDITIONS_NOT_MET,
             PAUSED,
             PAUSED_CONNECTION,
             RESEARCHING,
@@ -94,6 +95,7 @@ namespace RealScience
         List<RealScienceConditionGroup> conditionGroups;
         public ExperimentState state;
         bool loaded = false;
+        float totalDataRateModifier = 1f;
 
         [KSPField(isPersistant = true)]
         public float currentData = 0f;
@@ -263,6 +265,10 @@ namespace RealScience
                     break;
                 case ExperimentState.StateEnum.PAUSED_CONNECTION:
                     break;
+                case ExperimentState.StateEnum.CONDITIONS_NOT_MET:
+                    if (ValidateConditions())
+                        state.CurrentState = ExperimentState.StateEnum.RESEARCHING;
+                    break;
                 case ExperimentState.StateEnum.RESEARCHING:
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
                     if (currentData >= requiredData)
@@ -273,36 +279,13 @@ namespace RealScience
                     // Evaluate each group or condition and if they are all true, add research data
                     else
                     {
-                        bool conditionsValid = true;
-                        float totalDataRateModifier = 1f;
-                        if (conditionGroups == null || conditionGroups.Count == 0)
-                        {
-                            // No valid groups so we evaluate each condition instead
-                            foreach (IScienceCondition condition in conditions)
-                            {
-                                if (!condition.Evaluate(this.part))
-                                    conditionsValid = false;
-                                else
-                                    totalDataRateModifier *= condition.DataRateModifier;
-                            }
-                        }
-                        else
-                        {
-                            // We have groups, so instead of evaluating the conditions, we evaluate the groups
-                            foreach (RealScienceConditionGroup group in conditionGroups)
-                            {
-                                if (!group.Evaluate(this.part))
-                                    conditionsValid = false;
-                                else
-                                    totalDataRateModifier *= group.DataRateModifer;
-                            }
-                        }
-
-                        if (conditionsValid)
+                        if (ValidateConditions())
                         {
                             float currentDataRate = researchDataRate * totalDataRateModifier;
                             currentData = currentData + (currentDataRate * (currentMET - lastMET));
                         }
+                        else
+                            state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                     }
                     break;
                 case ExperimentState.StateEnum.RESEARCH_COMPLETE:
@@ -315,6 +298,35 @@ namespace RealScience
             lastMET = currentMET;
         }
 
+        public bool ValidateConditions()
+        {
+            bool conditionsValid = true;
+            totalDataRateModifier = 1f;
+            if (conditionGroups == null || conditionGroups.Count == 0)
+            {
+                // No valid groups so we evaluate each condition instead
+                foreach (IScienceCondition condition in conditions)
+                {
+                    if (!condition.Evaluate(this.part))
+                        conditionsValid = false;
+                    else
+                        totalDataRateModifier *= condition.DataRateModifier;
+                }
+            }
+            else
+            {
+                // We have groups, so instead of evaluating the conditions, we evaluate the groups
+                foreach (RealScienceConditionGroup group in conditionGroups)
+                {
+                    if (!group.Evaluate(this.part))
+                        conditionsValid = false;
+                    else
+                        totalDataRateModifier *= group.DataRateModifer;
+                }
+            }
+
+            return conditionsValid;
+        }
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
