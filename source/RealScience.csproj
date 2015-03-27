@@ -49,6 +49,10 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Conditions\IScienceCondition.cs" />
+    <Compile Include="Conditions\RealScienceCondition.cs" />
+    <Compile Include="Conditions\RealScienceCondition_Altitude.cs" />
+    <Compile Include="Conditions\RealScienceCondition_Orbit.cs" />
     <Compile Include="FrameworkExt\ClassDefinitions.cs" />
     <Compile Include="FrameworkExt\Extensions.cs" />
     <Compile Include="FrameworkExt\ExtensionsKSP.cs" />
@@ -68,7 +72,7 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)..\..\GameData\RealScience\Plugins</PostBuildEvent>
+    <PostBuildEvent>copy $(TargetPath) $(SolutionDir)..\GameData\RealScience\Plugins</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
