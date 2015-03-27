@@ -8,6 +8,15 @@ namespace RealScience.Conditions
         {
             get { return 1f; }
         }
+        public virtual bool IsRestriction
+        {
+            get { return false; }
+        }
+        public virtual string Exclusion
+        {
+            get { return ""; }
+        }
+
 
         public virtual bool Evaluate(Part part)
         {

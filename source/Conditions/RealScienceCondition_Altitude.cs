@@ -9,6 +9,7 @@ namespace RealScience.Conditions
         // common properties
         public string conditionType = "Altitude";
         public bool restriction = false;
+        public string exclusion = "";
         public bool optional = false;
         public float dataRateModifier = 1f;
         // specific properties
@@ -18,6 +19,14 @@ namespace RealScience.Conditions
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
+        }
+        public override bool IsRestriction
+        {
+            get { return restriction; }
+        }
+        public override string Exclusion
+        {
+            get { return exclusion; }
         }
         public override bool Evaluate(Part part)
         {
