@@ -54,6 +54,7 @@
     <Compile Include="Conditions\RealScienceCondition_Altitude.cs" />
     <Compile Include="Conditions\RealScienceCondition_Biome.cs" />
     <Compile Include="Conditions\RealScienceCondition_Body.cs" />
+    <Compile Include="Conditions\RealScienceCondition_GeeForce.cs" />
     <Compile Include="Conditions\RealScienceCondition_Orbit.cs" />
     <Compile Include="Conditions\RealScienceCondition_Part.cs" />
     <Compile Include="Conditions\RealScienceCondition_Resource.cs" />
