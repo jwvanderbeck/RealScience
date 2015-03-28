@@ -53,7 +53,9 @@
     <Compile Include="Conditions\RealScienceCondition.cs" />
     <Compile Include="Conditions\RealScienceCondition_Altitude.cs" />
     <Compile Include="Conditions\RealScienceCondition_Biome.cs" />
+    <Compile Include="Conditions\RealScienceCondition_Body.cs" />
     <Compile Include="Conditions\RealScienceCondition_Orbit.cs" />
+    <Compile Include="Conditions\RealScienceCondition_Situation.cs" />
     <Compile Include="FrameworkExt\ClassDefinitions.cs" />
     <Compile Include="FrameworkExt\Extensions.cs" />
     <Compile Include="FrameworkExt\ExtensionsKSP.cs" />

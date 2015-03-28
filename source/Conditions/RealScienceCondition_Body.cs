@@ -4,15 +4,16 @@ using UnityEngine;
 
 namespace RealScience.Conditions
 {
-    class RealScienceCondition_Situation : RealScienceCondition
+    class RealScienceCondition_Body : RealScienceCondition
     {
         // common properties
-        public string conditionType = "Situation";
+        public string conditionType = "Body";
         public bool restriction = false;
         public string exclusion = "";
         public float dataRateModifier = 1f;
         // specific properties
-        public string situation;
+        public string body;
+
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
@@ -28,7 +29,7 @@ namespace RealScience.Conditions
 
         public override bool Evaluate(Part part)
         {
-            if (part.vessel.situation.ToString().ToLower() == situation)
+            if (part.vessel.mainBody.ToString().ToLower() == body)
                 return true;
             return false;
         }
@@ -62,8 +63,8 @@ namespace RealScience.Conditions
                 }
             }
             // Load specific properties
-            if (node.HasValue("situation"))
-                situation = node.GetValue("situation");
+            if (node.HasValue("body"))
+                body = node.GetValue("body");
         }
         public override void Save(ConfigNode node)
         {
@@ -72,7 +73,7 @@ namespace RealScience.Conditions
             node.AddValue("restriction", restriction);
             node.AddValue("exclusion", exclusion);
             node.AddValue("dataRateModifier", dataRateModifier);
-            node.AddValue("situation", situation);
+            node.AddValue("body", body);
         }
     }
 }
