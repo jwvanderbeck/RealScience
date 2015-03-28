@@ -241,6 +241,8 @@ namespace RealScience
                         break;
                     }
                     transmittedPackets += quedPackets;
+                    // Use up charge
+                    part.RequestResource("ElectricCharge", transmissionDataResourceCost * deltaTime);
                     ResearchAndDevelopment.Instance.AddScience(sciencePerPacket * quedPackets, TransactionReasons.ScienceTransmission);
                     LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
                     ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
