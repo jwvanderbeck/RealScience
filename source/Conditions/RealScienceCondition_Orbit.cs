@@ -91,6 +91,22 @@ namespace RealScience.Conditions
                 }
             }
             // Load specific properties
+            if (node.HasValue("eccentricityMin"))
+                eccentricityMin = float.Parse(node.GetValue("eccentricityMin"));
+            if (node.HasValue("eccentricityMax"))
+                eccentricityMax = float.Parse(node.GetValue("eccentricityMax"));
+            if (node.HasValue("apoapsisMin"))
+                apoapsisMin = float.Parse(node.GetValue("apoapsisMin"));
+            if (node.HasValue("apoapsisMax"))
+                apoapsisMax = float.Parse(node.GetValue("apoapsisMax"));
+            if (node.HasValue("periapsisMin"))
+                periapsisMin = float.Parse(node.GetValue("periapsisMin"));
+            if (node.HasValue("periapsisMax"))
+                periapsisMax = float.Parse(node.GetValue("periapsisMax"));
+            if (node.HasValue("inclinationMin"))
+                inclinationMin = float.Parse(node.GetValue("inclinationMin"));
+            if (node.HasValue("inclinationMax"))
+                inclinationMax = float.Parse(node.GetValue("inclinationMax"));
 
         }
         public override void Save(ConfigNode node)
@@ -99,7 +115,15 @@ namespace RealScience.Conditions
             node.AddValue("conditionType", conditionType);
             node.AddValue("restriction", restriction);
             node.AddValue("dataRateModifier", dataRateModifier);
-
+            // Save specific properties
+            node.AddValue("eccentricityMin", eccentricityMin);
+            node.AddValue("eccentricityMax", eccentricityMax);
+            node.AddValue("apoapsisMin", apoapsisMin);
+            node.AddValue("apoapsisMax", apoapsisMax);
+            node.AddValue("periapsisMin", periapsisMin);
+            node.AddValue("periapsisMax", periapsisMax);
+            node.AddValue("inclinationMin", inclinationMin);
+            node.AddValue("inclinationMax", inclinationMax);
         }
     }
 }
