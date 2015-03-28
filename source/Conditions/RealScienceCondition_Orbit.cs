@@ -21,6 +21,8 @@ namespace RealScience.Conditions
         public float periapsisMax = float.MaxValue;
         public float inclinationMin = 0f;
         public float inclinationMax = 180f;
+        public float velocityMin = 0f;
+        public float velocityMax = float.MaxValue;
 
         public override float DataRateModifier
         {
@@ -59,6 +61,10 @@ namespace RealScience.Conditions
             if ((float)pe < periapsisMin)
                 return false;
             if ((float)pe > periapsisMax)
+                return false;
+            if (part.vessel.obt_speed < velocityMin)
+                return false;
+            if (part.vessel.obt_speed > velocityMax)
                 return false;
 
             return true;
@@ -107,6 +113,10 @@ namespace RealScience.Conditions
                 inclinationMin = float.Parse(node.GetValue("inclinationMin"));
             if (node.HasValue("inclinationMax"))
                 inclinationMax = float.Parse(node.GetValue("inclinationMax"));
+            if (node.HasValue("velocityMin"))
+                velocityMin = float.Parse(node.GetValue("velocityMin"));
+            if (node.HasValue("velocityMax"))
+                velocityMax = float.Parse(node.GetValue("velocityMax"));
 
         }
         public override void Save(ConfigNode node)
@@ -124,6 +134,8 @@ namespace RealScience.Conditions
             node.AddValue("periapsisMax", periapsisMax);
             node.AddValue("inclinationMin", inclinationMin);
             node.AddValue("inclinationMax", inclinationMax);
+            node.AddValue("velocityMin", velocityMin);
+            node.AddValue("velocityMax", velocityMax);
         }
     }
 }

@@ -59,6 +59,7 @@
     <Compile Include="Conditions\RealScienceCondition_Part.cs" />
     <Compile Include="Conditions\RealScienceCondition_Resource.cs" />
     <Compile Include="Conditions\RealScienceCondition_Situation.cs" />
+    <Compile Include="Conditions\RealScienceCondition_SurfaceSpeed.cs" />
     <Compile Include="FrameworkExt\ClassDefinitions.cs" />
     <Compile Include="FrameworkExt\Extensions.cs" />
     <Compile Include="FrameworkExt\ExtensionsKSP.cs" />
