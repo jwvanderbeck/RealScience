@@ -22,6 +22,7 @@ namespace RealScience
             PAUSED_CONNECTION,
             RESEARCHING,
             RESEARCH_COMPLETE,
+            RESEARCH_PAUSED_CONDITIONS_NOT_MET,
             ANALYZING,
             ANALYSIS_COMPLETE,
             READY_TO_TRANSMIT,
@@ -58,6 +59,14 @@ namespace RealScience
         }
     }
 
+    public enum EvalState
+    {
+        UNKNOWN = -1,
+        VALID,
+        INVALID,
+        RESET,
+        FAILED
+    }
 
     public class RealScienceExperiment : PartModuleExtended
     {
@@ -149,6 +158,7 @@ namespace RealScience
             base.OnUpdate();
             float currentMET = (float)this.vessel.missionTime;
             float deltaTime = currentMET - lastMET;
+            EvalState eval = ValidateConditions(deltaTime);
 
             switch (state.CurrentState)
             {
@@ -261,13 +271,48 @@ namespace RealScience
                 case ExperimentState.StateEnum.FAILED:
                     break;
                 case ExperimentState.StateEnum.IDLE:
+                    switch (eval)
+                    {
+                        case EvalState.VALID:
+                            break;
+                        case EvalState.FAILED:
+                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            break;
+                        case EvalState.RESET:
+                            currentData = 0f;
+                            break;
+                        case EvalState.INVALID:
+                            state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
+                            break;
+                    }
                     break;
                 case ExperimentState.StateEnum.PAUSED:
-                    break;
-                case ExperimentState.StateEnum.PAUSED_CONNECTION:
+                    switch (eval)
+                    {
+                        case EvalState.VALID:
+                            break;
+                        case EvalState.FAILED:
+                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            break;
+                        case EvalState.RESET:
+                            currentData = 0f;
+                            state.CurrentState = ExperimentState.StateEnum.IDLE;
+                            break;
+                    }
                     break;
                 case ExperimentState.StateEnum.CONDITIONS_NOT_MET:
-                    ValidateConditions(deltaTime);
+                    switch (eval)
+                    {
+                        case EvalState.VALID:
+                            state.CurrentState = ExperimentState.StateEnum.IDLE;
+                            break;
+                        case EvalState.FAILED:
+                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            break;
+                        case EvalState.RESET:
+                            currentData = 0f;
+                            break;
+                    }
                     break;
                 case ExperimentState.StateEnum.RESEARCHING:
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
@@ -276,14 +321,37 @@ namespace RealScience
                         state.CurrentState = ExperimentState.StateEnum.RESEARCH_COMPLETE;
                         break;
                     }
-                    // Evaluate each group or condition and if they are all true, add research data
-                    else
+                    switch (eval)
                     {
-                        if (ValidateConditions(deltaTime))
-                        {
+                        case EvalState.VALID:
                             float currentDataRate = researchDataRate * totalDataRateModifier;
                             currentData = currentData + (currentDataRate * (currentMET - lastMET));
-                        }
+                            break;
+                        case EvalState.FAILED:
+                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            break;
+                        case EvalState.RESET:
+                            currentData = 0f;
+                            state.CurrentState = ExperimentState.StateEnum.IDLE;
+                            break;
+                        case EvalState.INVALID:
+                            state.CurrentState = ExperimentState.StateEnum.RESEARCH_PAUSED_CONDITIONS_NOT_MET;
+                            break;
+                    }
+                    break;
+                case ExperimentState.StateEnum.RESEARCH_PAUSED_CONDITIONS_NOT_MET:
+                    switch (eval)
+                    {
+                        case EvalState.VALID:
+                            state.CurrentState = ExperimentState.StateEnum.RESEARCHING;
+                            break;
+                        case EvalState.FAILED:
+                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            break;
+                        case EvalState.RESET:
+                            currentData = 0f;
+                            state.CurrentState = ExperimentState.StateEnum.IDLE;
+                            break;
                     }
                     break;
                 case ExperimentState.StateEnum.RESEARCH_COMPLETE:
@@ -296,9 +364,8 @@ namespace RealScience
             lastMET = currentMET;
         }
 
-        public bool ValidateConditions(float deltaTime)
+        public EvalState ValidateConditions(float deltaTime)
         {
-            bool conditionsValid = true;
             totalDataRateModifier = 1f;
             if (conditionGroups == null || conditionGroups.Count == 0)
             {
@@ -308,21 +375,16 @@ namespace RealScience
                     if (condition.Evaluate(this.part, deltaTime) && condition.IsRestriction)
                     {
                         if (condition.Exclusion.ToLower() == "fail")
-                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            return EvalState.FAILED;
                         else if (condition.Exclusion.ToLower() == "reset")
-                        {
-                            currentData = 0f;
-                            state.CurrentState = ExperimentState.StateEnum.IDLE;
-                        }
+                            return EvalState.RESET;
                         else
+                            return EvalState.INVALID;
                             state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
-                        return false;
                     }
                     if (!condition.Evaluate(this.part, deltaTime) && !condition.IsRestriction)
-                    {
-                        state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
-                        return false;
-                    }
+                        return EvalState.INVALID;
+
                     totalDataRateModifier *= condition.DataRateModifier;
                 }
             }
@@ -334,26 +396,20 @@ namespace RealScience
                     if (group.Evaluate(this.part, deltaTime) && group.IsRestriction)
                     {
                         if (group.Exclusion.ToLower() == "fail")
-                            state.CurrentState = ExperimentState.StateEnum.FAILED;
+                            return EvalState.FAILED;
                         else if (group.Exclusion.ToLower() == "reset")
-                        {
-                            currentData = 0f;
-                            state.CurrentState = ExperimentState.StateEnum.IDLE;
-                        }
+                            return EvalState.RESET;
                         else
-                            state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
-                        return false;
+                            return EvalState.INVALID;
                     }
                     if (!group.Evaluate(this.part, deltaTime) && !group.IsRestriction)
-                    {
-                        state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
-                        return false;
-                    }
+                        return EvalState.INVALID;
+
                     totalDataRateModifier *= group.DataRateModifer;
                 }
             }
 
-            return conditionsValid;
+            return EvalState.VALID;
         }
         public override void OnLoad(ConfigNode node)
         {
