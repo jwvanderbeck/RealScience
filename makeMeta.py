@@ -25,7 +25,7 @@ build = int(version.split(".")[3])
 # create AVC .version file
 avc = {
 	"NAME" : "RealScience",
-	"URL" : "http://ksp-avc.cybutek.net/version.php?id=118",
+	"URL" : "http://ksp-avc.cybutek.net/version.php?id=137",
 	"DOWNLOAD" : "https://github.com/jwvanderbeck/RealScience/releases/download/{}/RealScience-{}.zip".format(args.tag[0],args.tag[0]),
 	"CHANGE_LOG_URL" : "https://github.com/jwvanderbeck/RealScience/releases/tag/{}".format(args.tag[0]),
 	"VERSION" :
