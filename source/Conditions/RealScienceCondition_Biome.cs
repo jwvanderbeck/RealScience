@@ -32,7 +32,7 @@ namespace RealScience.Conditions
             string currentBiome = ScienceUtil.GetExperimentBiome(part.vessel.mainBody, part.vessel.latitude, part.vessel.longitude);
             if (biome.ToLower() == currentBiome.ToLower())
                 return true;
-            return true;
+            return false;
         }
         public override void Load(ConfigNode node)
         {
