@@ -19,7 +19,7 @@ else
 meta:
 endif
 
-zip: configs meta
+zip: meta
 	zip -r $(ZIPFILE) GameData
 
 clean:
