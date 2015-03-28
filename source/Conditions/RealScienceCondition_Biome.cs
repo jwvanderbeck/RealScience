@@ -27,7 +27,7 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part)
+        public override bool Evaluate(Part part, float deltaTime)
         {
             string currentBiome = ScienceUtil.GetExperimentBiome(part.vessel.mainBody, part.vessel.latitude, part.vessel.longitude);
             if (biome.ToLower() == currentBiome.ToLower())

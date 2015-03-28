@@ -18,7 +18,7 @@ namespace RealScience.Conditions
         }
 
 
-        public virtual bool Evaluate(Part part)
+        public virtual bool Evaluate(Part part, float deltaTime)
         {
             return true;
         }

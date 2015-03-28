@@ -27,7 +27,7 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
-        public override bool Evaluate(Part part)
+        public override bool Evaluate(Part part, float deltaTime)
         {
             float altitude = FlightGlobals.getAltitudeAtPos(part.transform.position);
             if (altitude >= altitudeMin && altitude <= altitudeMax)

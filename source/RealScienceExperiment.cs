@@ -148,6 +148,7 @@ namespace RealScience
         {
             base.OnUpdate();
             float currentMET = (float)this.vessel.missionTime;
+            float deltaTime = currentMET - lastMET;
 
             switch (state.CurrentState)
             {
@@ -226,7 +227,6 @@ namespace RealScience
                         state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
                         break;
                     }
-                    float deltaTime = currentMET - lastMET;
                     quedPackets += transmissionDataRate * deltaTime;
                     LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: deltaTime={0:F2}, quedPackets={1:F2}", deltaTime, quedPackets));
                     // This just ensures we don't transmit too much
@@ -242,12 +242,14 @@ namespace RealScience
                     }
                     transmittedPackets += quedPackets;
                     // Use up charge
-                    part.RequestResource("ElectricCharge", transmissionDataResourceCost * deltaTime);
-                    ResearchAndDevelopment.Instance.AddScience(sciencePerPacket * quedPackets, TransactionReasons.ScienceTransmission);
-                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
-                    ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
-                    ScreenMessages.PostScreenMessage(statusMessage, true);
-                    quedPackets = 0f;
+                    if (part.RequestResource("ElectricCharge", transmissionDataResourceCost * deltaTime) == transmissionDataResourceCost * deltaTime)
+                    {
+                        ResearchAndDevelopment.Instance.AddScience(sciencePerPacket * quedPackets, TransactionReasons.ScienceTransmission);
+                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
+                        ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
+                        ScreenMessages.PostScreenMessage(statusMessage, true);
+                        quedPackets = 0f;
+                    }
                     break;
                 case ExperimentState.StateEnum.TRANSMIT_COMPLETE:
                     // science is awarded by the transmission, so we don't need to do it here
@@ -265,7 +267,7 @@ namespace RealScience
                 case ExperimentState.StateEnum.PAUSED_CONNECTION:
                     break;
                 case ExperimentState.StateEnum.CONDITIONS_NOT_MET:
-                    ValidateConditions();
+                    ValidateConditions(deltaTime);
                     break;
                 case ExperimentState.StateEnum.RESEARCHING:
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
@@ -277,7 +279,7 @@ namespace RealScience
                     // Evaluate each group or condition and if they are all true, add research data
                     else
                     {
-                        if (ValidateConditions())
+                        if (ValidateConditions(deltaTime))
                         {
                             float currentDataRate = researchDataRate * totalDataRateModifier;
                             currentData = currentData + (currentDataRate * (currentMET - lastMET));
@@ -294,7 +296,7 @@ namespace RealScience
             lastMET = currentMET;
         }
 
-        public bool ValidateConditions()
+        public bool ValidateConditions(float deltaTime)
         {
             bool conditionsValid = true;
             totalDataRateModifier = 1f;
@@ -303,7 +305,7 @@ namespace RealScience
                 // No valid groups so we evaluate each condition instead
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (condition.Evaluate(this.part) && condition.IsRestriction)
+                    if (condition.Evaluate(this.part, deltaTime) && condition.IsRestriction)
                     {
                         if (condition.Exclusion.ToLower() == "fail")
                             state.CurrentState = ExperimentState.StateEnum.FAILED;
@@ -316,7 +318,7 @@ namespace RealScience
                             state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                         return false;
                     }
-                    if (!condition.Evaluate(this.part) && !condition.IsRestriction)
+                    if (!condition.Evaluate(this.part, deltaTime) && !condition.IsRestriction)
                     {
                         state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                         return false;
@@ -329,7 +331,7 @@ namespace RealScience
                 // We have groups, so instead of evaluating the conditions, we evaluate the groups
                 foreach (RealScienceConditionGroup group in conditionGroups)
                 {
-                    if (group.Evaluate(this.part) && group.IsRestriction)
+                    if (group.Evaluate(this.part, deltaTime) && group.IsRestriction)
                     {
                         if (group.Exclusion.ToLower() == "fail")
                             state.CurrentState = ExperimentState.StateEnum.FAILED;
@@ -342,7 +344,7 @@ namespace RealScience
                             state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                         return false;
                     }
-                    if (!group.Evaluate(this.part) && !group.IsRestriction)
+                    if (!group.Evaluate(this.part, deltaTime) && !group.IsRestriction)
                     {
                         state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                         return false;
@@ -449,13 +451,13 @@ namespace RealScience
             get { return exclusion; }
         }
 
-        public bool Evaluate(Part part)
+        public bool Evaluate(Part part, float deltaTime)
         {
             if (groupType.ToLower() == "or")
             {
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (condition.Evaluate(part))
+                    if (condition.Evaluate(part, deltaTime))
                     {
                         dataRateModifier *= condition.DataRateModifier;
                         return true;
@@ -468,7 +470,7 @@ namespace RealScience
                 bool conditionsValid = true;
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (!condition.Evaluate(part))
+                    if (!condition.Evaluate(part, deltaTime))
                         conditionsValid = false;
                     dataRateModifier *= condition.DataRateModifier;
                 }

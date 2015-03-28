@@ -26,7 +26,7 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part)
+        public override bool Evaluate(Part part, float deltaTime)
         {
             if (part.vessel.situation.ToString().ToLower() == situation)
                 return true;
