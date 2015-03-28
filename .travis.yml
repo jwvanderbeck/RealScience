@@ -1,7 +1,7 @@
 language: python
 python:
 - '2.7'
-install: 
+install:
 - pip install -r requirements.txt
 script:
 - make clean
@@ -9,7 +9,7 @@ script:
 deploy:
   provider: releases
   api_key:
-    secure: LRM8ZzPgJUALKL7/ls9RvqmFoksE+Gq7+ud+l5ha+by7ptb1FWRXEjIWoELC8ieFioAi2aXKcYASKnwkIqmcwkH556mK+E4xaohdqN1jndVYxbe/Dle+cHO0G6vRjQWPJdp17sLlKKBfrt0p+JblqVf5tS3GoR5MVMeZp5/xThY=
+    secure: JPJo2r6jwIZ99AnDBGARls8rz/gtPPz1Y5TdvY+PrDApAPrBPPys+GsTAXfTIGMwi6WrH3qakBKXUmCrZEFxO4UtIMwYDgisi4sxXIOeMYA1+iviEEU4ZFJR1M/2JHzljkgFIw9vCrSuc/OFCuohJtVAjAUnQpy7KmIRq0mEwfw=
   file_glob: true    
   file: RealScience*.zip
   skip_cleanup: true
