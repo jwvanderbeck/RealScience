@@ -538,10 +538,20 @@ namespace RealScience
 
         protected List<IScienceCondition> conditions;
         protected float dataRateModifier = 1f;
+        protected float maximumDataModifier = 1f;
+        protected float maximumDataBonus = 0f;
 
         public float DataRateModifer
         {
             get { return dataRateModifier; }
+        }
+        public float MaximumDataModifier
+        {
+            get { return maximumDataModifier; }
+        }
+        public float MaximumDataBonus
+        {
+            get { return maximumDataBonus; }
         }
         public bool IsRestriction
         {
@@ -561,6 +571,8 @@ namespace RealScience
                     if (condition.Evaluate(part, deltaTime))
                     {
                         dataRateModifier *= condition.DataRateModifier;
+                        maximumDataModifier *= condition.MaximumDataModifier;
+                        maximumDataBonus += condition.MaximumDataBonus;
                         return true;
                     }
                 }
@@ -568,14 +580,15 @@ namespace RealScience
             }
             else
             {
-                bool conditionsValid = true;
                 foreach (IScienceCondition condition in conditions)
                 {
                     if (!condition.Evaluate(part, deltaTime))
-                        conditionsValid = false;
+                        return false;
                     dataRateModifier *= condition.DataRateModifier;
+                    maximumDataModifier *= condition.MaximumDataModifier;
+                    maximumDataBonus += condition.MaximumDataBonus;
                 }
-                return conditionsValid;
+                return true;
             }
         }
 

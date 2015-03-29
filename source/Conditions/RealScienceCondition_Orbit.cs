@@ -31,11 +31,11 @@ namespace RealScience.Conditions
         {
             get { return dataRateModifier; }
         }
-        public virtual float MaximumDataModifier
+        public override float MaximumDataModifier
         {
             get { return maximumDataModifier; }
         }
-        public virtual float MaximumDataBonus
+        public override float MaximumDataBonus
         {
             get { return maximumDataBonus; }
         }
