@@ -30,6 +30,7 @@ namespace RealScience
             TRANSMITTING,
             TRANSMIT_COMPLETE,
             FAILED,
+            DATA_CAP_REACHED,
             COMPLETED
         }
 
@@ -85,13 +86,13 @@ namespace RealScience
         [KSPField(isPersistant = false)]
         public bool multiFlight = false;
         [KSPField(isPersistant = false)]
-        public bool onRails = false;
-        [KSPField(isPersistant = false)]
         public bool autoAnalyze = true;
         [KSPField(isPersistant = false)]
         public bool autoTransmit = true;
         [KSPField(isPersistant = false)]
-        public float dataSize = 0f;
+        public float dataSize = -1f;
+        [KSPField(isPersistant = false)]
+        public float dataPerPacket = 1f;
         [KSPField(isPersistant = false)]
         public bool canFailAtAnyTime = false;
         [KSPField(isPersistant = false)]
@@ -105,7 +106,8 @@ namespace RealScience
         float totalDataRateModifier = 1f;
         float totalDataCapModifier = 1f;
         float currentDataCap = -1f;
-
+        IScienceDataTransmitter chosenTransmitter = null;
+        bool transmitRoutineRunning = false;
 
         [KSPField(isPersistant = true)]
         public float currentData = 0f;
@@ -125,6 +127,8 @@ namespace RealScience
         public float quedPackets = 0f;
         [KSPField(isPersistant = true)]
         public float recoveryValue = 0f;
+        [KSPField(isPersistant = true)]
+        public float dataToSend = 0f;
 
 
         public override void Start()
@@ -141,9 +145,18 @@ namespace RealScience
                     description = modulePrefab.description;
                     discipline = modulePrefab.discipline;
                     requiredData = modulePrefab.requiredData;
+                    maximumData = modulePrefab.maximumData;
                     analysisTime = modulePrefab.analysisTime;
                     scienceValue = modulePrefab.scienceValue;
+                    scienceValuePerData = modulePrefab.scienceValuePerData;
                     researchDataRate = modulePrefab.researchDataRate;
+                    multiFlight = modulePrefab.multiFlight;
+                    autoAnalyze = modulePrefab.autoAnalyze;
+                    autoTransmit = modulePrefab.autoTransmit;
+                    dataSize = modulePrefab.dataSize;
+                    dataPerPacket = modulePrefab.dataPerPacket;
+                    canFailAtAnyTime = modulePrefab.canFailAtAnyTime;
+                    transmitValue = modulePrefab.transmitValue;
                     conditions = modulePrefab.conditions;
                     conditionGroups = modulePrefab.conditionGroups;
                 }
@@ -179,6 +192,36 @@ namespace RealScience
             }
         }
 
+        protected void SelectAntenna()
+        {
+            // find an antenna
+            List<IScienceDataTransmitter> antennas = part.FindModulesImplementing<IScienceDataTransmitter>();
+            float dataRate = 0f;
+            double resourceCost = double.MaxValue;
+            bool favorLowPowerAntenna = true;
+            if (RealScienceManager.Instance != null)
+                favorLowPowerAntenna = RealScienceManager.Instance.userSettings.favorLowPowerAntenna;
+            foreach(IScienceDataTransmitter transmitter in antennas)
+            {
+                if (favorLowPowerAntenna)
+                {
+                    if (transmitter.DataResourceCost < resourceCost)
+                    {
+                        resourceCost = transmitter.DataResourceCost;
+                        chosenTransmitter = transmitter;
+                    }
+                }
+                else
+                {
+                    if (transmitter.DataRate > dataRate)
+                    {
+                        dataRate = transmitter.DataRate;
+                        chosenTransmitter = transmitter;
+                    }
+                }
+            }
+        }
+
         public override void OnUpdate()
         {
             base.OnUpdate();
@@ -189,47 +232,41 @@ namespace RealScience
             switch (state.CurrentState)
             {
                 case ExperimentState.StateEnum.ANALYZING:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
                     analysisTimeRemaining -= (currentMET - lastMET);
                     if (analysisTimeRemaining <= 0)
                         state.CurrentState = ExperimentState.StateEnum.ANALYSIS_COMPLETE;
                     break;
                 case ExperimentState.StateEnum.ANALYSIS_COMPLETE:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
                     state.CurrentState = ExperimentState.StateEnum.READY_TO_TRANSMIT;
                     break;
                 case ExperimentState.StateEnum.READY_TO_TRANSMIT:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
                     if (autoTransmit)
                     {
                         state.CurrentState = ExperimentState.StateEnum.START_TRANSMIT;
                     }
                     break;
                 case ExperimentState.StateEnum.START_TRANSMIT:
-                    // find an antenna
-                    List<IScienceDataTransmitter> antennas = part.FindModulesImplementing<IScienceDataTransmitter>();
-                    float dataRate = 0f;
-                    double resourceCost = double.MaxValue;
-                    bool favorLowPowerAntenna = true;
-                    IScienceDataTransmitter chosenTransmitter = null;
-                    if (RealScienceManager.Instance != null)
-                        favorLowPowerAntenna = RealScienceManager.Instance.userSettings.favorLowPowerAntenna;
-                    foreach(IScienceDataTransmitter transmitter in antennas)
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
                     {
-                        if (favorLowPowerAntenna)
-                        {
-                            if (transmitter.DataResourceCost < resourceCost)
-                            {
-                                resourceCost = transmitter.DataResourceCost;
-                                chosenTransmitter = transmitter;
-                            }
-                        }
-                        else
-                        {
-                            if (transmitter.DataRate > dataRate)
-                            {
-                                dataRate = transmitter.DataRate;
-                                chosenTransmitter = transmitter;
-                            }
-                        }
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
                     }
+                    SelectAntenna();
                     if (chosenTransmitter == null)
                         break;
                     if (chosenTransmitter.IsBusy())
@@ -252,46 +289,26 @@ namespace RealScience
                     transmittedPackets = 0f;
 
                     ScreenMessages.PostScreenMessage(String.Format("[{0}]: Starting Transmission...", experimentTitle), 5f, ScreenMessageStyle.UPPER_LEFT);
+                    if (!transmitRoutineRunning)
+                    {
+                        StartCoroutine("Transmission");
+                        transmitRoutineRunning = true;
+                    }
                     state.CurrentState = ExperimentState.StateEnum.TRANSMITTING;
                     break;
                 case ExperimentState.StateEnum.TRANSMITTING:
-                    float transmitScienceValue;
-                    float sciencePerPacket = scienceValue / dataSize;
-                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}", transmittedPackets));
-                    if (transmittedPackets >= dataSize)
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
                     {
-                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: Transmission Complete.  Changing state."));
-                        state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
                         break;
-                    }
-                    quedPackets += transmissionDataRate * deltaTime;
-                    LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: deltaTime={0:F2}, quedPackets={1:F2}", deltaTime, quedPackets));
-                    // This just ensures we don't transmit too much
-                    if (transmittedPackets + quedPackets > dataSize)
-                    {
-                        quedPackets = dataSize - transmittedPackets;
-                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: adjusted quedPackets={0:F2}", quedPackets));
-                    }
-                    if (quedPackets < 1f && transmittedPackets + quedPackets < dataSize)
-                    {
-                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: Waiting until we can send a whole packet."));
-                        break;
-                    }
-                    transmittedPackets += quedPackets;
-                    // Use up charge
-                    if (part.RequestResource("ElectricCharge", transmissionDataResourceCost * deltaTime) == transmissionDataResourceCost * deltaTime)
-                    {
-                        float transmitScience = (sciencePerPacket * quedPackets) * transmitValue;
-                        float recoveryScience = (sciencePerPacket * quedPackets) * 1f - transmitValue;
-                        ResearchAndDevelopment.Instance.AddScience(transmitScience, TransactionReasons.ScienceTransmission);
-                        recoveryValue += recoveryScience;
-                        LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
-                        ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
-                        ScreenMessages.PostScreenMessage(statusMessage, true);
-                        quedPackets = 0f;
                     }
                     break;
                 case ExperimentState.StateEnum.TRANSMIT_COMPLETE:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
                     // science is awarded by the transmission, so we don't need to do it here
                     // ResearchAndDevelopment.Instance.AddScience(scienceValue, TransactionReasons.ScienceTransmission);
                     ScreenMessage completionMessage = new ScreenMessage(String.Format("[{0}]: Transmission Completed", experimentTitle), 5.0f, ScreenMessageStyle.UPPER_LEFT);
@@ -317,6 +334,11 @@ namespace RealScience
                     }
                     break;
                 case ExperimentState.StateEnum.PAUSED:
+                    if (transmitRoutineRunning)
+                    {
+                        StopCoroutine("Transmit");
+                        transmitRoutineRunning = false;
+                    }
                     switch (eval)
                     {
                         case EvalState.VALID:
@@ -345,10 +367,25 @@ namespace RealScience
                     }
                     break;
                 case ExperimentState.StateEnum.RESEARCHING:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
+                    if (!transmitRoutineRunning && requiredData <= 0f)
+                    {
+                        StartCoroutine("Transmission");
+                        transmitRoutineRunning = true;
+                    }
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
-                    if (currentData >= requiredData)
+                    if (requiredData > 0 && currentData >= requiredData)
                     {
                         state.CurrentState = ExperimentState.StateEnum.RESEARCH_COMPLETE;
+                        break;
+                    }
+                    if (currentData >= maximumData)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.DATA_CAP_REACHED;
                         break;
                     }
                     switch (eval)
@@ -369,6 +406,13 @@ namespace RealScience
                             break;
                     }
                     break;
+                case ExperimentState.StateEnum.DATA_CAP_REACHED:
+                    if (currentData < maximumData)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.RESEARCHING;
+                        break;
+                    }
+                    break;
                 case ExperimentState.StateEnum.RESEARCH_PAUSED_CONDITIONS_NOT_MET:
                     switch (eval)
                     {
@@ -385,10 +429,24 @@ namespace RealScience
                     }
                     break;
                 case ExperimentState.StateEnum.RESEARCH_COMPLETE:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
                     if (autoAnalyze)
                         state.CurrentState = ExperimentState.StateEnum.ANALYZING;
                     break;
                 case ExperimentState.StateEnum.UNKNOWN:
+                    if (canFailAtAnyTime && eval == EvalState.FAILED)
+                    {
+                        state.CurrentState = ExperimentState.StateEnum.FAILED;
+                        break;
+                    }
+                    break;
+                case ExperimentState.StateEnum.COMPLETED:
+                    StopCoroutine("Transmit");
+                    transmitRoutineRunning = false;
                     break;
             }
             lastMET = currentMET;
@@ -430,6 +488,35 @@ namespace RealScience
                 }
                 return EvalState.VALID;
             }
+        }
+
+        IEnumerator Transmit()
+        {
+            if (dataToSend > 0)
+            {
+                if (chosenTransmitter == null)
+                    SelectAntenna();
+                if (chosenTransmitter != null)
+                {
+                    // determine how much data we can send this tick, and then calculate science value of that much data
+                    float packetsToTransmit = Mathf.Min(dataToSend / dataPerPacket, chosenTransmitter.DataRate);
+                    float science = (packetsToTransmit * dataPerPacket) * scienceValuePerData;
+                    // consume elctricity for the transmission
+                    double consumedEC = part.RequestResource("ElectricCharge", chosenTransmitter.DataResourceCost * packetsToTransmit);
+                    double percentTransmitted = consumedEC / (chosenTransmitter.DataResourceCost * packetsToTransmit);
+                    // award science and lower our next data to send based on how much we transmitted
+                    ResearchAndDevelopment.Instance.AddScience(science * (float)percentTransmitted, TransactionReasons.ScienceTransmission);
+                    dataToSend = dataToSend - (packetsToTransmit * dataPerPacket * (float)percentTransmitted);
+                }
+            }
+            else
+            {
+                if (requiredData > 0 && currentData >= requiredData)
+                {
+                    state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
+                }
+            }
+            yield return new WaitForSeconds(1);
         }
 
         public override void OnLoad(ConfigNode node)
