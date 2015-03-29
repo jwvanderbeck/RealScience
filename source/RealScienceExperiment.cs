@@ -505,8 +505,10 @@ namespace RealScience
                     double consumedEC = part.RequestResource("ElectricCharge", chosenTransmitter.DataResourceCost * packetsToTransmit);
                     double percentTransmitted = consumedEC / (chosenTransmitter.DataResourceCost * packetsToTransmit);
                     // award science and lower our next data to send based on how much we transmitted
-                    ResearchAndDevelopment.Instance.AddScience(science * (float)percentTransmitted, TransactionReasons.ScienceTransmission);
+                    double transmittableScience = science * percentTransmitted * transmitValue;
+                    ResearchAndDevelopment.Instance.AddScience((float)transmittableScience, TransactionReasons.ScienceTransmission);
                     dataToSend = dataToSend - (packetsToTransmit * dataPerPacket * (float)percentTransmitted);
+                    recoveryValue += science * (float)percentTransmitted * (1-transmitValue);
                 }
             }
             else
