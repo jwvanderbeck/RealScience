@@ -112,6 +112,9 @@ namespace RealScience
         public ExperimentState state;
         bool loaded = false;
         float totalDataRateModifier = 1f;
+        float totalDataCapModifier = 1f;
+        float currentDataCap = -1f;
+
 
         [KSPField(isPersistant = true)]
         public float currentData = 0f;
@@ -403,6 +406,9 @@ namespace RealScience
         public EvalState ValidateConditions(float deltaTime)
         {
             totalDataRateModifier = 1f;
+            totalDataCapModifier = 1f;
+            currentDataCap = maximumData;
+
             if (conditionGroups == null || conditionGroups.Count == 0)
             {
                 // No valid groups so we evaluate each condition instead
@@ -421,6 +427,8 @@ namespace RealScience
                         return EvalState.INVALID;
 
                     totalDataRateModifier *= condition.DataRateModifier;
+                    totalDataCapModifier *= condition.MaximumDataModifier;
+                    currentDataCap += condition.MaximumDataBonus;
                 }
             }
             else
@@ -441,6 +449,8 @@ namespace RealScience
                         return EvalState.INVALID;
 
                     totalDataRateModifier *= group.DataRateModifer;
+                    totalDataCapModifier *= group.MaximumDataModifier;
+                    currentDataCap += group.MaximumDataBonus;
                 }
             }
 
