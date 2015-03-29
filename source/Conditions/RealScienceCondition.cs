@@ -8,6 +8,15 @@ namespace RealScience.Conditions
         {
             get { return 1f; }
         }
+        public virtual float MaximumDataModifier
+        {
+            get { return 1f; }
+        }
+        public virtual float MaximumDataBonus
+        {
+            get { return 0f; }
+        }
+        
         public virtual bool IsRestriction
         {
             get { return false; }

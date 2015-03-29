@@ -11,6 +11,8 @@ namespace RealScience.Conditions
         public bool restriction = false;
         public string exclusion = "";
         public float dataRateModifier = 1f;
+        public float maximumDataModifier = 1f;
+        public float maximumDataBonus = 0f;
         // specific properties
         public float altitudeMin = 0f;
         public float altitudeMax = float.MaxValue;
@@ -18,6 +20,14 @@ namespace RealScience.Conditions
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
+        }
+        public virtual float MaximumDataModifier
+        {
+            get { return maximumDataModifier; }
+        }
+        public virtual float MaximumDataBonus
+        {
+            get { return maximumDataBonus; }
         }
         public override bool IsRestriction
         {

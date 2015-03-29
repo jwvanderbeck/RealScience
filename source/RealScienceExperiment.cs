@@ -82,9 +82,13 @@ namespace RealScience
         [KSPField(isPersistant = false)]
         public float requiredData = 0f;
         [KSPField(isPersistant = false)]
+        public float maximumData = -1f;
+        [KSPField(isPersistant = false)]
         public float analysisTime = 0f;
         [KSPField(isPersistant = false)]
         public float scienceValue = 0f;
+        [KSPField(isPersistant = false)]
+        public float scienceValuePerData = -1f;
         [KSPField(isPersistant = false)]
         public float researchDataRate = 1f;
         [KSPField(isPersistant = false)]
@@ -97,6 +101,11 @@ namespace RealScience
         public bool autoTransmit = true;
         [KSPField(isPersistant = false)]
         public float dataSize = 0f;
+        [KSPField(isPersistant = false)]
+        public bool canFailAtAnyTime = false;
+        [KSPField(isPersistant = false)]
+        public float transmitValue = 1f;
+
 
         List<IScienceCondition> conditions;
         List<RealScienceConditionGroup> conditionGroups;
@@ -120,6 +129,8 @@ namespace RealScience
         public float transmissionDataResourceCost = 1f;
         [KSPField(isPersistant = true)]
         public float quedPackets = 0f;
+        [KSPField(isPersistant = true)]
+        public float recoveryValue = 0f;
 
 
         public override void Start()
@@ -150,6 +161,27 @@ namespace RealScience
                 lastMET = (float)this.vessel.missionTime;
                 state = new ExperimentState();
                 state.CurrentState = ExperimentState.StateEnum.IDLE;
+            }
+            if (transmitValue < 1f)
+                GameEvents.onVesselSituationChange.Add(OnVesselSituationChange);
+        }
+
+        protected void OnVesselSituationChange(GameEvents.HostedFromToAction<Vessel, Vessel.Situations> vs)
+        {
+            if (vs.to == Vessel.Situations.LANDED || vs.to == Vessel.Situations.SPLASHED)
+            {
+                if (vs.from == Vessel.Situations.FLYING)
+                {
+                    if (vs.host.mainBody.isHomeWorld)
+                    {
+                        if (state.CurrentState != ExperimentState.StateEnum.FAILED)
+                        {
+                            ResearchAndDevelopment.Instance.AddScience(recoveryValue, TransactionReasons.ScienceTransmission);
+                            ScreenMessage statusMessage = new ScreenMessage(String.Format("[{0}] Experiment Recovered.", experimentTitle), 5.0f, ScreenMessageStyle.UPPER_LEFT);
+                            ScreenMessages.PostScreenMessage(statusMessage, true);
+                        }
+                    }
+                }
             }
         }
 
@@ -229,6 +261,7 @@ namespace RealScience
                     state.CurrentState = ExperimentState.StateEnum.TRANSMITTING;
                     break;
                 case ExperimentState.StateEnum.TRANSMITTING:
+                    float transmitScienceValue;
                     float sciencePerPacket = scienceValue / dataSize;
                     LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}", transmittedPackets));
                     if (transmittedPackets >= dataSize)
@@ -254,7 +287,10 @@ namespace RealScience
                     // Use up charge
                     if (part.RequestResource("ElectricCharge", transmissionDataResourceCost * deltaTime) == transmissionDataResourceCost * deltaTime)
                     {
-                        ResearchAndDevelopment.Instance.AddScience(sciencePerPacket * quedPackets, TransactionReasons.ScienceTransmission);
+                        float transmitScience = (sciencePerPacket * quedPackets) * transmitValue;
+                        float recoveryScience = (sciencePerPacket * quedPackets) * 1f - transmitValue;
+                        ResearchAndDevelopment.Instance.AddScience(transmitScience, TransactionReasons.ScienceTransmission);
+                        recoveryValue += recoveryScience;
                         LogFormatted_DebugOnly(String.Format("RealScience: OnUpdate: TRANSMITTING: transmittedPackets={0:F2}, add {1:F2} science", transmittedPackets, sciencePerPacket * quedPackets));
                         ScreenMessage statusMessage = new ScreenMessage(String.Format("{0:F2}/{1:F2} Packets Transmitted...", transmittedPackets, dataSize), 5.0f, ScreenMessageStyle.UPPER_LEFT);
                         ScreenMessages.PostScreenMessage(statusMessage, true);
@@ -380,7 +416,6 @@ namespace RealScience
                             return EvalState.RESET;
                         else
                             return EvalState.INVALID;
-                            state.CurrentState = ExperimentState.StateEnum.CONDITIONS_NOT_MET;
                     }
                     if (!condition.Evaluate(this.part, deltaTime) && !condition.IsRestriction)
                         return EvalState.INVALID;
