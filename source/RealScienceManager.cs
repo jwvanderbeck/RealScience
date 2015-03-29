@@ -195,6 +195,9 @@ namespace RealScience
                                 case ExperimentState.StateEnum.RESEARCH_PAUSED_CONDITIONS_NOT_MET:
                                     statusString = String.Format("<color=#dc322fff>{0,-30}</color>", "Invalid Conditions");
                                     break;
+                                case ExperimentState.StateEnum.DATA_CAP_REACHED:
+                                    statusString = String.Format("<color=#859900ff>{0,-30}</color>", "Data Cap Reached");
+                                    break;
                             }
                             GUILayout.Label(statusString, GUILayout.Width(100));
                             // Action Button
