@@ -16,6 +16,7 @@ namespace RealScience.Conditions
         public float maximumDataBonus = 0f;
 
         // specific properties
+        public string mainBody = "kerbin";
         public float eccentricityMin = 0f;
         public float eccentricityMax = 1f;
         public float apoapsisMin = float.MinValue;
@@ -51,6 +52,9 @@ namespace RealScience.Conditions
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = true;
+
+            if (part.vessel.mainBody.ToString().ToLower() != mainBody.ToLower())
+                valid = false;
             if (part.vessel.orbit.eccentricity < eccentricityMin)
                 valid = false;
             if (part.vessel.orbit.eccentricity > eccentricityMax)
@@ -129,6 +133,8 @@ namespace RealScience.Conditions
                 }
             }
             // Load specific properties
+            if (node.HasValue("mainBody"))
+                mainBody = node.GetValue("mainBody");
             if (node.HasValue("eccentricityMin"))
                 eccentricityMin = float.Parse(node.GetValue("eccentricityMin"));
             if (node.HasValue("eccentricityMax"))
@@ -158,6 +164,7 @@ namespace RealScience.Conditions
             node.AddValue("restriction", restriction);
             node.AddValue("dataRateModifier", dataRateModifier);
             // Save specific properties
+            node.AddValue("mainBody", mainBody);
             node.AddValue("eccentricityMin", eccentricityMin);
             node.AddValue("eccentricityMax", eccentricityMax);
             node.AddValue("apoapsisMin", apoapsisMin);
