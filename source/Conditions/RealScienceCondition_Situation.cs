@@ -37,11 +37,32 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
+            bool valid = false;
             if (part.vessel.situation.ToString().ToLower() == situation)
-                return true;
-            return false;
+                valid = true;
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
+            }
         }
         public override void Load(ConfigNode node)
         {

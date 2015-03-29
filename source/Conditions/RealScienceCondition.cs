@@ -2,6 +2,15 @@
 
 namespace RealScience.Conditions
 {
+    public enum EvalState
+    {
+        UNKNOWN = -1,
+        VALID,
+        INVALID,
+        RESET,
+        FAILED
+    }
+
     public class RealScienceCondition : IScienceCondition
     {
         public virtual float DataRateModifier
@@ -27,9 +36,9 @@ namespace RealScience.Conditions
         }
 
 
-        public virtual bool Evaluate(Part part, float deltaTime)
+        public virtual EvalState Evaluate(Part part, float deltaTime)
         {
-            return true;
+            return EvalState.VALID;
         }
         public virtual void Load(ConfigNode node)
         {

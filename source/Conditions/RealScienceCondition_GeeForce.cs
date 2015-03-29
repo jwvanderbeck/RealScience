@@ -39,9 +39,31 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
-            return FlightGlobals.ship_geeForce >= gMin && FlightGlobals.ship_geeForce <= gMax;
+            bool valid = FlightGlobals.ship_geeForce >= gMin && FlightGlobals.ship_geeForce <= gMax;
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
+            }
+
         }
         public override void Load(ConfigNode node)
         {

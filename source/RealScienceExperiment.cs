@@ -59,15 +59,6 @@ namespace RealScience
         }
     }
 
-    public enum EvalState
-    {
-        UNKNOWN = -1,
-        VALID,
-        INVALID,
-        RESET,
-        FAILED
-    }
-
     public class RealScienceExperiment : PartModuleExtended
     {
 
@@ -414,48 +405,33 @@ namespace RealScience
                 // No valid groups so we evaluate each condition instead
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (condition.Evaluate(this.part, deltaTime) && condition.IsRestriction)
-                    {
-                        if (condition.Exclusion.ToLower() == "fail")
-                            return EvalState.FAILED;
-                        else if (condition.Exclusion.ToLower() == "reset")
-                            return EvalState.RESET;
-                        else
-                            return EvalState.INVALID;
-                    }
-                    if (!condition.Evaluate(this.part, deltaTime) && !condition.IsRestriction)
-                        return EvalState.INVALID;
+                    EvalState eval = condition.Evaluate(part, deltaTime);
+                    if (eval != EvalState.VALID)
+                        return eval;
 
                     totalDataRateModifier *= condition.DataRateModifier;
                     totalDataCapModifier *= condition.MaximumDataModifier;
                     currentDataCap += condition.MaximumDataBonus;
                 }
+                return EvalState.VALID;
             }
             else
             {
                 // We have groups, so instead of evaluating the conditions, we evaluate the groups
                 foreach (RealScienceConditionGroup group in conditionGroups)
                 {
-                    if (group.Evaluate(this.part, deltaTime) && group.IsRestriction)
-                    {
-                        if (group.Exclusion.ToLower() == "fail")
-                            return EvalState.FAILED;
-                        else if (group.Exclusion.ToLower() == "reset")
-                            return EvalState.RESET;
-                        else
-                            return EvalState.INVALID;
-                    }
-                    if (!group.Evaluate(this.part, deltaTime) && !group.IsRestriction)
-                        return EvalState.INVALID;
+                    EvalState eval = group.Evaluate(part, deltaTime);
+                    if (eval != EvalState.VALID)
+                        return eval;
 
                     totalDataRateModifier *= group.DataRateModifer;
                     totalDataCapModifier *= group.MaximumDataModifier;
                     currentDataCap += group.MaximumDataBonus;
                 }
+                return EvalState.VALID;
             }
-
-            return EvalState.VALID;
         }
+
         public override void OnLoad(ConfigNode node)
         {
             base.OnLoad(node);
@@ -531,10 +507,6 @@ namespace RealScience
     {
         [KSPField(isPersistant = false)]
         public string groupType = "or";
-        [KSPField(isPersistant = false)]
-        public bool restriction = false;
-        [KSPField(isPersistant = false)]
-        public string exclusion = "";
 
         protected List<IScienceCondition> conditions;
         protected float dataRateModifier = 1f;
@@ -553,42 +525,44 @@ namespace RealScience
         {
             get { return maximumDataBonus; }
         }
-        public bool IsRestriction
-        {
-            get { return restriction; }
-        }
-        public string Exclusion
-        {
-            get { return exclusion; }
-        }
 
-        public bool Evaluate(Part part, float deltaTime)
+        public EvalState Evaluate(Part part, float deltaTime)
         {
             if (groupType.ToLower() == "or")
             {
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (condition.Evaluate(part, deltaTime))
+                    EvalState eval = condition.Evaluate(part, deltaTime);
+                    if (eval == EvalState.INVALID)
+                        continue;
+
+                    if (eval == EvalState.VALID)
                     {
                         dataRateModifier *= condition.DataRateModifier;
                         maximumDataModifier *= condition.MaximumDataModifier;
                         maximumDataBonus += condition.MaximumDataBonus;
-                        return true;
+                        return EvalState.VALID;
                     }
+
+                    return eval;
                 }
-                return false;
+                return EvalState.INVALID;
             }
             else
             {
                 foreach (IScienceCondition condition in conditions)
                 {
-                    if (!condition.Evaluate(part, deltaTime))
-                        return false;
-                    dataRateModifier *= condition.DataRateModifier;
-                    maximumDataModifier *= condition.MaximumDataModifier;
-                    maximumDataBonus += condition.MaximumDataBonus;
+                    EvalState eval = condition.Evaluate(part, deltaTime);
+                    if (eval == EvalState.VALID)
+                    {
+                        dataRateModifier *= condition.DataRateModifier;
+                        maximumDataModifier *= condition.MaximumDataModifier;
+                        maximumDataBonus += condition.MaximumDataBonus;
+                    }
+                    else
+                        return eval;
                 }
-                return true;
+                return EvalState.VALID;
             }
         }
 
@@ -596,10 +570,6 @@ namespace RealScience
         {
             if (node.HasNode("groupType"))
                 groupType = node.GetValue("groupType");
-            if (node.HasNode("restriction"))
-                restriction = bool.Parse(node.GetValue("restriction"));
-            if (node.HasNode("exclusion"))
-                exclusion = node.GetValue("exclusion");
             if (node.HasNode("condition"))
             {
                 foreach (ConfigNode conditionNode in node.GetNodes("condition"))

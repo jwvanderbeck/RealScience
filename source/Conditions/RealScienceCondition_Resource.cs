@@ -43,25 +43,49 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
+            bool valid;
             if (!initialUpdate && initialOnly)
-                return true;
+                valid = true;
             float consumption;
             if (initialUpdate)
             {
                 initialUpdate = false;
                 consumption = part.RequestResource(resourceName, initialConsumption);
                 if (consumption != initialConsumption && !validIfEmpty)
-                    return false;
-                return true;
+                    valid = false;
+                else 
+                    valid = true;
             }
             else
             {
                 consumption = part.RequestResource(resourceName, usagePerSecond * deltaTime);
                 if (consumption != (usagePerSecond * deltaTime) && !validIfEmpty)
-                    return false;
-                return true;
+                    valid = false;
+                else 
+                    valid = true;
+            }
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
             }
         }
         public override void Load(ConfigNode node)

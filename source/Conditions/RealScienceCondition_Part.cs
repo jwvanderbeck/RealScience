@@ -38,14 +38,36 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
+            bool valid = false;
             foreach(Part vPart in part.vessel.Parts)
             {
                 if (vPart.partName.ToLower() == requiredPartName)
-                    return true;
+                    valid = true;
             }
-            return false;
+
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
+            }
         }
         public override void Load(ConfigNode node)
         {

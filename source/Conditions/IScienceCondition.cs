@@ -13,6 +13,6 @@ namespace RealScience.Conditions
         bool IsRestriction { get; }
         string Exclusion { get; }
 
-        bool Evaluate(Part part, float deltaTime);
+        EvalState Evaluate(Part part, float deltaTime);
     }
 }

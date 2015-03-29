@@ -48,16 +48,17 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
+            bool valid = true;
             if (part.vessel.orbit.eccentricity < eccentricityMin)
-                return false;
+                valid = false;
             if (part.vessel.orbit.eccentricity > eccentricityMax)
-                return false;
+                valid = false;
             if (part.vessel.orbit.inclination < inclinationMin)
-                return false;
+                valid = false;
             if (part.vessel.orbit.inclination > inclinationMax)
-                return false;
+                valid = false;
             double r_ap = part.vessel.orbit.semiMajorAxis * (1 + part.vessel.orbit.eccentricity);
             double r_pe = part.vessel.orbit.semiMajorAxis * (1 - part.vessel.orbit.eccentricity);
             double radius = part.vessel.orbit.referenceBody.Radius;
@@ -66,19 +67,39 @@ namespace RealScience.Conditions
             Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated AP, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_ap, ap, part.vessel.orbit.referenceBody.name, radius));
             Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated PE, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_pe, pe, part.vessel.orbit.referenceBody.name, radius));
             if ((float)ap < apoapsisMin)
-                return false;
+                valid = false;
             if ((float)ap > apoapsisMax)
-                return false;
+                valid = false;
             if ((float)pe < periapsisMin)
-                return false;
+                valid = false;
             if ((float)pe > periapsisMax)
-                return false;
+                valid = false;
             if (part.vessel.obt_speed < velocityMin)
-                return false;
+                valid = false;
             if (part.vessel.obt_speed > velocityMax)
-                return false;
+                valid = false;
 
-            return true;
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
+            }
         }
         public override void Load(ConfigNode node)
         {

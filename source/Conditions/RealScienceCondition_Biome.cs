@@ -38,12 +38,37 @@ namespace RealScience.Conditions
             get { return exclusion; }
         }
 
-        public override bool Evaluate(Part part, float deltaTime)
+        public override EvalState Evaluate(Part part, float deltaTime)
         {
+            bool valid;
+
             string currentBiome = ScienceUtil.GetExperimentBiome(part.vessel.mainBody, part.vessel.latitude, part.vessel.longitude);
             if (biome.ToLower() == currentBiome.ToLower())
-                return true;
-            return false;
+                valid = true;
+            else
+                valid = false;
+
+            if (!restriction)
+            {
+                if (valid)
+                    return EvalState.VALID;
+                else
+                    return EvalState.INVALID;
+            }
+            else
+            {
+                if (!valid)
+                    return EvalState.VALID;
+                else
+                {
+                    if (exclusion.ToLower() == "reset")
+                        return EvalState.RESET;
+                    else if (exclusion.ToLower() == "fail")
+                        return EvalState.FAILED;
+                    else
+                        return EvalState.INVALID;
+                }
+            }
         }
         public override void Load(ConfigNode node)
         {
