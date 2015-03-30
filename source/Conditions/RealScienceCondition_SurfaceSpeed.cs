@@ -38,6 +38,10 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Name
+        {
+            get { return conditionType; }
+        }
 
         public override EvalState Evaluate(Part part, float deltaTime)
         {

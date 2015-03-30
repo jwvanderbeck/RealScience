@@ -34,6 +34,14 @@ namespace RealScience.Conditions
         {
             get { return ""; }
         }
+        public virtual string Tooltip
+        {
+            get { return ""; }
+        }
+        public virtual string Name
+        {
+            get { return ""; }
+        }
 
 
         public virtual EvalState Evaluate(Part part, float deltaTime)

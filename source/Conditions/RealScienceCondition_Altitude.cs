@@ -17,6 +17,8 @@ namespace RealScience.Conditions
         public float altitudeMin = 0f;
         public float altitudeMax = float.MaxValue;
 
+        protected string tooltip;
+
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
@@ -37,9 +39,21 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Tooltip
+        {
+            get { return tooltip; }
+        }
+        public override string Name
+        {
+            get { return conditionType; }
+        }
+
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = true;
+            tooltip = "Altitude Condition";
+            string met = "<color=#859900ff>";
+            string unmet = "<color=#dc322fff>";
 
             float altitude = FlightGlobals.getAltitudeAtPos(part.transform.position);
             if (altitude >= altitudeMin && altitude <= altitudeMax)

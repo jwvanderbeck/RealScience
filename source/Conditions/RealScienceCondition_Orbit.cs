@@ -48,13 +48,20 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Name
+        {
+            get { return conditionType; }
+        }
 
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = true;
 
-            if (part.vessel.mainBody.ToString().ToLower() != mainBody.ToLower())
+            if (part.vessel.mainBody.name.ToLower() != mainBody.ToLower())
+            {
+                Debug.Log(String.Format("RealScience: Orbit: mainBody {0} != {1}", part.vessel.mainBody.name.ToLower(), mainBody.ToLower()));
                 valid = false;
+            }
             if (part.vessel.orbit.eccentricity < eccentricityMin)
                 valid = false;
             if (part.vessel.orbit.eccentricity > eccentricityMax)
@@ -69,17 +76,35 @@ namespace RealScience.Conditions
             double ap = r_ap - radius;
             double pe = r_pe - radius;
             if ((float)ap < apoapsisMin)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: apoapsisMin {0} < {1}", ap, apoapsisMin));
                 valid = false;
+            }
             if ((float)ap > apoapsisMax)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: apoapsisMax {0} < {1}", ap, apoapsisMax));
                 valid = false;
+            }
             if ((float)pe < periapsisMin)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: periapsisMin {0} < {1}", pe, periapsisMin));
                 valid = false;
+            }
             if ((float)pe > periapsisMax)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: periapsisMax {0} < {1}", pe, periapsisMax));
                 valid = false;
+            }
             if (part.vessel.obt_speed < velocityMin)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: velocityMin {0} < {1}", part.vessel.obt_speed, velocityMin));
                 valid = false;
+            }
             if (part.vessel.obt_speed > velocityMax)
+            {
+                Debug.Log(String.Format("RealScience: Orbit: velocityMax {0} > {1}", part.vessel.obt_speed, velocityMax));
                 valid = false;
+            }
 
             if (!restriction)
             {

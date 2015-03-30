@@ -291,7 +291,7 @@ namespace RealScience
                     ScreenMessages.PostScreenMessage(String.Format("[{0}]: Starting Transmission...", experimentTitle), 5f, ScreenMessageStyle.UPPER_LEFT);
                     if (!transmitRoutineRunning)
                     {
-                        StartCoroutine("Transmission");
+                        StartCoroutine("Transmit");
                         transmitRoutineRunning = true;
                     }
                     state.CurrentState = ExperimentState.StateEnum.TRANSMITTING;
@@ -374,7 +374,7 @@ namespace RealScience
                     }
                     if (!transmitRoutineRunning && requiredData <= 0f)
                     {
-                        StartCoroutine("Transmission");
+                        StartCoroutine("Transmit");
                         transmitRoutineRunning = true;
                     }
                     // check if research data >= required data and change state to RESEARCH_COMPLETE if so
@@ -480,7 +480,10 @@ namespace RealScience
                 {
                     EvalState eval = group.Evaluate(part, deltaTime);
                     if (eval != EvalState.VALID)
+                    {
+                        Debug.Log("RealScience: Evaluate: Group did not evaluate as valid");
                         return eval;
+                    }
 
                     totalDataRateModifier *= group.DataRateModifer;
                     totalDataCapModifier *= group.MaximumDataModifier;
@@ -623,7 +626,10 @@ namespace RealScience
                 {
                     EvalState eval = condition.Evaluate(part, deltaTime);
                     if (eval == EvalState.INVALID)
+                    {
+                        Debug.Log(String.Format("RealScience: Group: Evaluate: {0} is not valid", condition.Name));
                         continue;
+                    }
 
                     if (eval == EvalState.VALID)
                     {
@@ -647,6 +653,11 @@ namespace RealScience
                         dataRateModifier *= condition.DataRateModifier;
                         maximumDataModifier *= condition.MaximumDataModifier;
                         maximumDataBonus += condition.MaximumDataBonus;
+                    }
+                    else if (eval == EvalState.INVALID)
+                    {
+                        Debug.Log(String.Format("RealScience: Group: Evaluate: {0} is not valid", condition.Name));
+                        return eval;
                     }
                     else
                         return eval;

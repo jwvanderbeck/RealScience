@@ -12,6 +12,8 @@ namespace RealScience.Conditions
         float MaximumDataBonus { get; }
         bool IsRestriction { get; }
         string Exclusion { get; }
+        string Tooltip { get; }
+        string Name { get; }
 
         EvalState Evaluate(Part part, float deltaTime);
     }

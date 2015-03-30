@@ -43,6 +43,10 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Name
+        {
+            get { return conditionType; }
+        }
 
         public override EvalState Evaluate(Part part, float deltaTime)
         {
@@ -54,16 +58,22 @@ namespace RealScience.Conditions
             {
                 initialUpdate = false;
                 consumption = part.RequestResource(resourceName, initialConsumption);
-                if (consumption != initialConsumption && !validIfEmpty)
+                if (consumption.CompareTo(initialConsumption) != 0 && !validIfEmpty)
+                {
+                    Debug.Log(String.Format("RealScience: Resource: initial consumption of {0:F6} != expected {1:F6}", consumption, initialConsumption));
                     valid = false;
-                else 
+                }
+                else
                     valid = true;
             }
             else
             {
                 consumption = part.RequestResource(resourceName, usagePerSecond * deltaTime);
-                if (consumption != (usagePerSecond * deltaTime) && !validIfEmpty)
+                if (consumption.CompareTo(usagePerSecond * deltaTime) != 0 && !validIfEmpty)
+                {
+                    Debug.Log(String.Format("RealScience: Resource: consumption of {0:F6} != expected {1:F6}", consumption, (usagePerSecond * deltaTime)));
                     valid = false;
+                }
                 else 
                     valid = true;
             }
