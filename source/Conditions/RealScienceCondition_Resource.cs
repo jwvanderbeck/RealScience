@@ -20,6 +20,7 @@ namespace RealScience.Conditions
         public float usagePerSecond = 1f;
         public bool initialOnly = false;
         public bool validIfEmpty = false;
+
         public bool initialUpdate = true;
 
         public override float DataRateModifier

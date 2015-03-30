@@ -383,7 +383,7 @@ namespace RealScience
                         state.CurrentState = ExperimentState.StateEnum.RESEARCH_COMPLETE;
                         break;
                     }
-                    if (currentData >= maximumData)
+                    if (maximumData > 0 && currentData >= maximumData)
                     {
                         state.CurrentState = ExperimentState.StateEnum.DATA_CAP_REACHED;
                         break;
@@ -661,12 +661,24 @@ namespace RealScience
                 groupType = node.GetValue("groupType");
             if (node.HasNode("condition"))
             {
+                Debug.Log("RealScience: OnLoad: Loading conditions...");
+                if (conditions == null)
+                    conditions = new List<IScienceCondition>();
+                conditions.Clear();
                 foreach (ConfigNode conditionNode in node.GetNodes("condition"))
                 {
                     if (conditionNode.HasValue("conditionType"))
                     {
                         string conditionType = conditionNode.GetValue("conditionType");
-                        IScienceCondition newCondition = (IScienceCondition)Activator.CreateInstance(null, "RealScience.RealScienceCondition_" + conditionType);
+
+                        RealScienceCondition newCondition = null;
+                        System.Runtime.Remoting.ObjectHandle conditionObj = null;
+                        conditionObj = Activator.CreateInstance(null, "RealScience.Conditions.RealScienceCondition_" + conditionType);
+                        if (conditionObj == null)
+                            Debug.Log("RealScience: OnLoad: Failed to create Condition ObjectHandle");
+                        else
+                            newCondition = (RealScienceCondition)conditionObj.Unwrap();
+
                         newCondition.Load(conditionNode);
                         conditions.Add(newCondition);
                     }

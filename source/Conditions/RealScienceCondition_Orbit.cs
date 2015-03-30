@@ -68,8 +68,6 @@ namespace RealScience.Conditions
             double radius = part.vessel.orbit.referenceBody.Radius;
             double ap = r_ap - radius;
             double pe = r_pe - radius;
-            Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated AP, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_ap, ap, part.vessel.orbit.referenceBody.name, radius));
-            Debug.Log(String.Format("RealScience: Orbit: Evaluate: Calculated PE, radius={0:F2}, altitude={1:F2}.  Reference body={2}, radius={3:F2}", r_pe, pe, part.vessel.orbit.referenceBody.name, radius));
             if ((float)ap < apoapsisMin)
                 valid = false;
             if ((float)ap > apoapsisMax)
