@@ -130,6 +130,7 @@ namespace RealScience
             GUILayout.BeginHorizontal();
             GUILayout.Label("<b>Experiment</b>", GUILayout.Width(200));
             GUILayout.Label("<b>Data</b>", GUILayout.Width(75));
+            GUILayout.Label("<b>Transmission</b>", GUILayout.Width(75));
             GUILayout.Label("<b>Status</b>", GUILayout.Width(100));
             GUILayout.Label("<b>Actions</b>", GUILayout.Width(50));
             GUILayout.EndHorizontal();
@@ -156,8 +157,13 @@ namespace RealScience
                             // Current Data/Total Data
                             float currentData = experiment.currentData;
                             float totalData = experiment.requiredData;
+                            if (totalData <= 0)
+                                totalData = experiment.maximumData;
                             string dataString = String.Format("{0:F2}/{1:F2}", currentData, totalData);
                             GUILayout.Label(dataString, GUILayout.Width(75));
+                            // Transmission
+                            string xmitString = String.Format("{0:F2}", experiment.dataToSend);
+                            GUILayout.Label(xmitString, GUILayout.Width(75));
                             // Status
                             string statusString = "";
                             switch (experiment.state.CurrentState)

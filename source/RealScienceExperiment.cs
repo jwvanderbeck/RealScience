@@ -195,7 +195,9 @@ namespace RealScience
         protected void SelectAntenna()
         {
             // find an antenna
-            List<IScienceDataTransmitter> antennas = part.FindModulesImplementing<IScienceDataTransmitter>();
+            LogFormatted_DebugOnly("RealScience: SelectAntenna: Searching for a transmitter");
+            List<IScienceDataTransmitter> antennas = part.vessel.FindPartModulesImplementing<IScienceDataTransmitter>();
+            LogFormatted_DebugOnly(String.Format("RealScience: SelectAntenna: Found {0} antennas", antennas.Count));
             float dataRate = 0f;
             double resourceCost = double.MaxValue;
             bool favorLowPowerAntenna = true;
@@ -393,6 +395,7 @@ namespace RealScience
                         case EvalState.VALID:
                             float currentDataRate = researchDataRate * totalDataRateModifier;
                             currentData = currentData + (currentDataRate * (currentMET - lastMET));
+                            dataToSend = dataToSend + (currentDataRate * (currentMET - lastMET));
                             break;
                         case EvalState.FAILED:
                             state.CurrentState = ExperimentState.StateEnum.FAILED;
@@ -495,33 +498,43 @@ namespace RealScience
 
         IEnumerator Transmit()
         {
-            if (dataToSend > 0)
+            while(true)
             {
-                if (chosenTransmitter == null)
-                    SelectAntenna();
-                if (chosenTransmitter != null)
+                LogFormatted_DebugOnly(String.Format("RealScience: Transmit: dataToSend {0:F2}", dataToSend));
+                if (dataToSend > 0)
                 {
-                    // determine how much data we can send this tick, and then calculate science value of that much data
-                    float packetsToTransmit = Mathf.Min(dataToSend / dataPerPacket, chosenTransmitter.DataRate);
-                    float science = (packetsToTransmit * dataPerPacket) * scienceValuePerData;
-                    // consume elctricity for the transmission
-                    double consumedEC = part.RequestResource("ElectricCharge", chosenTransmitter.DataResourceCost * packetsToTransmit);
-                    double percentTransmitted = consumedEC / (chosenTransmitter.DataResourceCost * packetsToTransmit);
-                    // award science and lower our next data to send based on how much we transmitted
-                    double transmittableScience = science * percentTransmitted * transmitValue;
-                    ResearchAndDevelopment.Instance.AddScience((float)transmittableScience, TransactionReasons.ScienceTransmission);
-                    dataToSend = dataToSend - (packetsToTransmit * dataPerPacket * (float)percentTransmitted);
-                    recoveryValue += science * (float)percentTransmitted * (1-transmitValue);
+                    if (chosenTransmitter == null)
+                        SelectAntenna();
+                    if (chosenTransmitter != null)
+                    {
+                        // determine how much data we can send this tick, and then calculate science value of that much data
+                        float packetsToTransmit = Mathf.Min(dataToSend / dataPerPacket, chosenTransmitter.DataRate);
+                        float science = (packetsToTransmit * dataPerPacket) * scienceValuePerData;
+                        // consume elctricity for the transmission
+                        LogFormatted_DebugOnly(String.Format("RealScience: Transmit: Transmitting {0:f2} packets", packetsToTransmit));
+                        double consumedEC = part.RequestResource("ElectricCharge", chosenTransmitter.DataResourceCost * packetsToTransmit);
+                        double percentTransmitted = consumedEC / (chosenTransmitter.DataResourceCost * packetsToTransmit);
+                        LogFormatted_DebugOnly(String.Format("RealScience: Transmit: Consumed {0:F2}EC, for a % Transmitted of {1:F2}", consumedEC, percentTransmitted));
+                        // award science and lower our next data to send based on how much we transmitted
+                        double transmittableScience = science * percentTransmitted * transmitValue;
+                        ResearchAndDevelopment.Instance.AddScience((float)transmittableScience, TransactionReasons.ScienceTransmission);
+                        dataToSend = dataToSend - (packetsToTransmit * dataPerPacket * (float)percentTransmitted);
+                        recoveryValue += science * (float)percentTransmitted * (1 - transmitValue);
+                    }
+                    else
+                        LogFormatted_DebugOnly("RealScience: Transmit: No valid transmitter found");
                 }
-            }
-            else
-            {
-                if (requiredData > 0 && currentData >= requiredData)
+                else
                 {
-                    state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
+                    if (requiredData > 0 && currentData >= requiredData)
+                    {
+                        LogFormatted_DebugOnly("RealScience: Transmit: Setting state to TRANSMIT_COMPLETE");
+                        state.CurrentState = ExperimentState.StateEnum.TRANSMIT_COMPLETE;
+                    }
                 }
+                LogFormatted_DebugOnly("RealScience: Transmit: Yielding for 1 second");
+                yield return new WaitForSeconds(1);
             }
-            yield return new WaitForSeconds(1);
         }
 
         public override void OnLoad(ConfigNode node)
