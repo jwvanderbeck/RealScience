@@ -37,6 +37,11 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        protected string tooltip;
+        public override string Tooltip
+        {
+            get { return tooltip; }
+        }
         public override string Name
         {
             get { return conditionType; }
@@ -45,11 +50,26 @@ namespace RealScience.Conditions
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = false;
-            foreach(Part vPart in part.vessel.Parts)
+            tooltip = "\nBody Condition";
+            if (restriction)
+            {
+                if (exclusion.ToLower() == "reset")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are the experiment will be <b>reset</b>.";
+                else if (exclusion.ToLower() == "fail")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are, the experiment will <b>fail</b>.";
+                else
+                    tooltip += "\nThe following condition must <b>not</b> be met.";
+            }
+            else
+                tooltip += "\nThe following condition must be met.";
+
+            foreach (Part vPart in part.vessel.Parts)
             {
                 if (vPart.partName.ToLower() == requiredPartName)
                     valid = true;
             }
+
+            tooltip += String.Format("\nCraft has part named <b>{0}</b>.  Currently <b>{1}</b>", requiredPartName, valid);
 
             if (!restriction)
             {

@@ -36,6 +36,11 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        protected string tooltip;
+        public override string Tooltip
+        {
+            get { return tooltip; }
+        }
         public override string Name
         {
             get { return conditionType; }
@@ -44,6 +49,19 @@ namespace RealScience.Conditions
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = false;
+            tooltip = "\nSituation Condition";
+            if (restriction)
+            {
+                if (exclusion.ToLower() == "reset")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are the experiment will be <b>reset</b>.";
+                else if (exclusion.ToLower() == "fail")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are, the experiment will <b>fail</b>.";
+                else
+                    tooltip += "\nThe following condition must <b>not</b> be met.";
+            }
+            else
+                tooltip += "\nThe following condition must be met.";
+            tooltip += String.Format("\nScience situation equal to <b>{0}</b>.  Currently <b>{1}</b>", situation, part.vessel.situation.ToString().ToLower());
             if (part.vessel.situation.ToString().ToLower() == situation)
                 valid = true;
             if (!restriction)

@@ -205,7 +205,7 @@ namespace RealScience
                                     statusString = String.Format("<color=#859900ff>{0,-30}</color>", "Data Cap Reached");
                                     break;
                             }
-                            GUILayout.Label(statusString, GUILayout.Width(100));
+                            GUILayout.Label(new GUIContent(statusString, experiment.Tooltip), GUILayout.Width(100));
                             // Action Button
                             switch (experiment.state.CurrentState)
                             {

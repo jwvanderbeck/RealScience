@@ -28,6 +28,8 @@ namespace RealScience.Conditions
         public float velocityMin = 0f;
         public float velocityMax = float.MaxValue;
 
+        protected string tooltip;
+
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
@@ -48,6 +50,10 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Tooltip
+        {
+            get { return tooltip; }
+        }
         public override string Name
         {
             get { return conditionType; }
@@ -56,12 +62,32 @@ namespace RealScience.Conditions
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = true;
+            double r_ap = part.vessel.orbit.semiMajorAxis * (1 + part.vessel.orbit.eccentricity);
+            double r_pe = part.vessel.orbit.semiMajorAxis * (1 - part.vessel.orbit.eccentricity);
+            double radius = part.vessel.orbit.referenceBody.Radius;
+            double ap = r_ap - radius;
+            double pe = r_pe - radius;
+            tooltip = "\nOrbit Condition";
+            if (restriction)
+            {
+                if (exclusion.ToLower() == "reset")
+                    tooltip += "\nThe following conditions must <b>not</b> be met.  If they are the experiment will be <b>reset</b>.";
+                else if (exclusion.ToLower() == "fail")
+                    tooltip += "\nThe following conditions must <b>not</b> be met.  If they are, the experiment will <b>fail</b>.";
+                else
+                    tooltip += "\nThe following conditions must <b>not</b> be met.";
+            }
+            else
+                tooltip += "\nThe following conditions must be met.";
+            tooltip += String.Format("\nCraft sphere of influence equal to <b>{0}</b>.  Currently <b>{1}</b>", mainBody, part.vessel.mainBody.ToString().ToLower());
+            tooltip += String.Format("\nEccentricity between <b>{0:F2}</b> and <b>{1:F2}</b>.  Currently <b>{2:F2}</b>", eccentricityMin, eccentricityMax, part.vessel.orbit.eccentricity);
+            tooltip += String.Format("\nInclination between <b>{0:F2}</b> and <b>{1:F2}</b>.  Currently <b>{2:F2}</b>", inclinationMin, inclinationMax, part.vessel.orbit.inclination);
+            tooltip += String.Format("\nApoapsis between <b>{0:F2}</b> and <b>{1:F2}</b>.  Currently <b>{2:F2}</b>", apoapsisMin, apoapsisMax, ap);
+            tooltip += String.Format("\nPeriapsis between <b>{0:F2}</b> and <b>{1:F2}</b>.  Currently <b>{2:F2}</b>", periapsisMin, periapsisMax, pe);
+            tooltip += String.Format("\nOrbital velocity between <b>{0:F2}</b> and <b>{1:F2}</b>.  Currently <b>{2:F2}</b>", velocityMin, velocityMax, part.vessel.obt_speed);
 
             if (part.vessel.mainBody.name.ToLower() != mainBody.ToLower())
-            {
-                Debug.Log(String.Format("RealScience: Orbit: mainBody {0} != {1}", part.vessel.mainBody.name.ToLower(), mainBody.ToLower()));
                 valid = false;
-            }
             if (part.vessel.orbit.eccentricity < eccentricityMin)
                 valid = false;
             if (part.vessel.orbit.eccentricity > eccentricityMax)
@@ -70,41 +96,18 @@ namespace RealScience.Conditions
                 valid = false;
             if (part.vessel.orbit.inclination > inclinationMax)
                 valid = false;
-            double r_ap = part.vessel.orbit.semiMajorAxis * (1 + part.vessel.orbit.eccentricity);
-            double r_pe = part.vessel.orbit.semiMajorAxis * (1 - part.vessel.orbit.eccentricity);
-            double radius = part.vessel.orbit.referenceBody.Radius;
-            double ap = r_ap - radius;
-            double pe = r_pe - radius;
             if ((float)ap < apoapsisMin)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: apoapsisMin {0} < {1}", ap, apoapsisMin));
                 valid = false;
-            }
             if ((float)ap > apoapsisMax)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: apoapsisMax {0} < {1}", ap, apoapsisMax));
                 valid = false;
-            }
             if ((float)pe < periapsisMin)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: periapsisMin {0} < {1}", pe, periapsisMin));
                 valid = false;
-            }
             if ((float)pe > periapsisMax)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: periapsisMax {0} < {1}", pe, periapsisMax));
                 valid = false;
-            }
             if (part.vessel.obt_speed < velocityMin)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: velocityMin {0} < {1}", part.vessel.obt_speed, velocityMin));
                 valid = false;
-            }
             if (part.vessel.obt_speed > velocityMax)
-            {
-                Debug.Log(String.Format("RealScience: Orbit: velocityMax {0} > {1}", part.vessel.obt_speed, velocityMax));
                 valid = false;
-            }
 
             if (!restriction)
             {

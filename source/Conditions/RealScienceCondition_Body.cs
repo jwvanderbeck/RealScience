@@ -17,6 +17,8 @@ namespace RealScience.Conditions
         // specific properties
         public string body;
 
+        protected string tooltip;
+
         public override float DataRateModifier
         {
             get { return dataRateModifier; }
@@ -37,6 +39,10 @@ namespace RealScience.Conditions
         {
             get { return exclusion; }
         }
+        public override string Tooltip
+        {
+            get { return tooltip; }
+        }
         public override string Name
         {
             get { return conditionType; }
@@ -45,7 +51,20 @@ namespace RealScience.Conditions
         public override EvalState Evaluate(Part part, float deltaTime)
         {
             bool valid = false;
+            tooltip = "\nBody Condition";
+            if (restriction)
+            {
+                if (exclusion.ToLower() == "reset")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are the experiment will be <b>reset</b>.";
+                else if (exclusion.ToLower() == "fail")
+                    tooltip += "\nThe following condition must <b>not</b> be met.  If they are, the experiment will <b>fail</b>.";
+                else
+                    tooltip += "\nThe following condition must <b>not</b> be met.";
+            }
+            else
+                tooltip += "\nThe following condition must be met.";
 
+            tooltip += String.Format("\nCraft sphere of influence equal to <b>{0}</b>.  Currently <b>{1}</b>", body, part.vessel.mainBody.ToString().ToLower());
             if (part.vessel.mainBody.ToString().ToLower() == body)
                 valid = true;
 

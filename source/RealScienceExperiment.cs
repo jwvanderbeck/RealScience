@@ -130,6 +130,31 @@ namespace RealScience
         [KSPField(isPersistant = true)]
         public float dataToSend = 0f;
 
+        public string Tooltip
+        {
+            get
+            {
+                string returnVal = "";
+
+                if (conditionGroups == null || conditionGroups.Count == 0)
+                {
+                    // No valid groups so we evaluate each condition instead
+                    foreach (IScienceCondition condition in conditions)
+                    {
+                        returnVal += condition.Tooltip;
+                    }
+                }
+                else
+                {
+                    // We have groups, so instead of evaluating the conditions, we evaluate the groups
+                    foreach (RealScienceConditionGroup group in conditionGroups)
+                    {
+                        returnVal += group.Tooltip;
+                    }
+                }
+                return returnVal;
+            }
+        }
 
         public override void Start()
         {
@@ -629,6 +654,22 @@ namespace RealScience
         public float MaximumDataBonus
         {
             get { return maximumDataBonus; }
+        }
+        public string Tooltip
+        {
+            get 
+            {
+                string returnVal;
+                if (groupType.ToLower() == "or")
+                    returnVal = "\nOR Group\nAt least <b>one</b> of the following conditions in this group must be valid.\n";
+                else
+                    returnVal = "\nAND Group\n<b>All</b> of the following conditions in this group must be valid.\n";
+                foreach (IScienceCondition condition in conditions)
+                {
+                    returnVal += "\n" + condition.Tooltip;
+                }
+                return returnVal;
+            }
         }
 
         public EvalState Evaluate(Part part, float deltaTime)
