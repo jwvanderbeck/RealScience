@@ -64,8 +64,8 @@ namespace RealScience.Conditions
             else
                 tooltip += "\nThe following condition must be met.";
 
-            tooltip += String.Format("\nCraft sphere of influence equal to <b>{0}</b>.  Currently <b>{1}</b>", body, part.vessel.mainBody.ToString().ToLower());
-            if (part.vessel.mainBody.ToString().ToLower() == body)
+            tooltip += String.Format("\nCraft sphere of influence equal to <b>{0}</b>.  Currently <b>{1}</b>", body, part.vessel.mainBody.name.ToLower());
+            if (part.vessel.mainBody.name.ToLower() == body)
                 valid = true;
 
             if (!restriction)
