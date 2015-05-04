@@ -15,6 +15,6 @@ namespace RealScience.Conditions
         string Tooltip { get; }
         string Name { get; }
 
-        EvalState Evaluate(Part part, float deltaTime);
+		EvalState Evaluate(Part part, float deltaTime, ExperimentState state);
     }
 }

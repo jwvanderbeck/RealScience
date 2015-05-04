@@ -491,7 +491,7 @@ namespace RealScience
                 // No valid groups so we evaluate each condition instead
                 foreach (IScienceCondition condition in conditions)
                 {
-                    EvalState eval = condition.Evaluate(part, deltaTime);
+					EvalState eval = condition.Evaluate(part, deltaTime, state);
                     if (eval != EvalState.VALID)
                         return eval;
 
@@ -506,7 +506,7 @@ namespace RealScience
                 // We have groups, so instead of evaluating the conditions, we evaluate the groups
                 foreach (RealScienceConditionGroup group in conditionGroups)
                 {
-                    EvalState eval = group.Evaluate(part, deltaTime);
+					EvalState eval = group.Evaluate(part, deltaTime, state);
                     if (eval != EvalState.VALID)
                     {
                         Debug.Log("RealScience: Evaluate: Group did not evaluate as valid");
@@ -672,13 +672,13 @@ namespace RealScience
             }
         }
 
-        public EvalState Evaluate(Part part, float deltaTime)
+		public EvalState Evaluate(Part part, float deltaTime, ExperimentState state)
         {
             if (groupType.ToLower() == "or")
             {
                 foreach (IScienceCondition condition in conditions)
                 {
-                    EvalState eval = condition.Evaluate(part, deltaTime);
+					EvalState eval = condition.Evaluate(part, deltaTime, state);
                     if (eval == EvalState.INVALID)
                     {
                         Debug.Log(String.Format("RealScience: Group: Evaluate: {0} is not valid", condition.Name));
@@ -701,7 +701,7 @@ namespace RealScience
             {
                 foreach (IScienceCondition condition in conditions)
                 {
-                    EvalState eval = condition.Evaluate(part, deltaTime);
+                    EvalState eval = condition.Evaluate(part, deltaTime, state);
                     if (eval == EvalState.VALID)
                     {
                         dataRateModifier *= condition.DataRateModifier;

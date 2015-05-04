@@ -48,7 +48,7 @@ namespace RealScience.Conditions
             get { return conditionType; }
         }
 
-        public override EvalState Evaluate(Part part, float deltaTime)
+		public override EvalState Evaluate(Part part, float deltaTime, ExperimentState state)
         {
             bool valid = part.vessel.srfSpeed >= velocityMin && part.vessel.srfSpeed <= velocityMax;
             tooltip = "\nSurfaceSpeed Condition";

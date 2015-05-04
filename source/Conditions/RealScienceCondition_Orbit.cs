@@ -59,7 +59,7 @@ namespace RealScience.Conditions
             get { return conditionType; }
         }
 
-        public override EvalState Evaluate(Part part, float deltaTime)
+		public override EvalState Evaluate(Part part, float deltaTime, ExperimentState state)
         {
             bool valid = true;
             double r_ap = part.vessel.orbit.semiMajorAxis * (1 + part.vessel.orbit.eccentricity);

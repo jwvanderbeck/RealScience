@@ -44,7 +44,7 @@ namespace RealScience.Conditions
         }
 
 
-        public virtual EvalState Evaluate(Part part, float deltaTime)
+		public virtual EvalState Evaluate(Part part, float deltaTime, ExperimentState state)
         {
             return EvalState.VALID;
         }

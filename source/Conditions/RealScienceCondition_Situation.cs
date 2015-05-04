@@ -46,7 +46,7 @@ namespace RealScience.Conditions
             get { return conditionType; }
         }
 
-        public override EvalState Evaluate(Part part, float deltaTime)
+		public override EvalState Evaluate(Part part, float deltaTime, ExperimentState state)
         {
             bool valid = false;
             tooltip = "\nSituation Condition";
