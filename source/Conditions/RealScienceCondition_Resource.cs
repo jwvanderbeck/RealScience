@@ -58,6 +58,8 @@ namespace RealScience.Conditions
             {
                 initialUpdate = false;
                 consumption = part.RequestResource(resourceName, initialConsumption);
+				if (state.CurrentState != ExperimentState.StateEnum.RESEARCHING)
+					part.RequestResource (resourceName, consumption * -1);
                 if (consumption.CompareTo(initialConsumption) != 0 && !validIfEmpty)
                 {
                     Debug.Log(String.Format("RealScience: Resource: initial consumption of {0:F6} != expected {1:F6}", consumption, initialConsumption));
@@ -69,6 +71,8 @@ namespace RealScience.Conditions
             else
             {
                 consumption = part.RequestResource(resourceName, usagePerSecond * deltaTime);
+				if (state.CurrentState != ExperimentState.StateEnum.RESEARCHING)
+					part.RequestResource (resourceName, consumption * -1);
                 if (consumption.CompareTo(usagePerSecond * deltaTime) != 0 && !validIfEmpty)
                 {
                     Debug.Log(String.Format("RealScience: Resource: consumption of {0:F6} != expected {1:F6}", consumption, (usagePerSecond * deltaTime)));
