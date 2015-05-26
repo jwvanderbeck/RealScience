@@ -1,6 +1,8 @@
 language: python
 python:
 - '2.7'
+before_install:
+  - git log --no-merges -n 1 > changes.md
 install:
 - pip install -r requirements.txt
 script:
@@ -10,10 +12,21 @@ deploy:
   provider: releases
   api_key:
     secure: JPJo2r6jwIZ99AnDBGARls8rz/gtPPz1Y5TdvY+PrDApAPrBPPys+GsTAXfTIGMwi6WrH3qakBKXUmCrZEFxO4UtIMwYDgisi4sxXIOeMYA1+iviEEU4ZFJR1M/2JHzljkgFIw9vCrSuc/OFCuohJtVAjAUnQpy7KmIRq0mEwfw=
-  file_glob: true    
+  file_glob: true
   file: RealScience*.zip
   skip_cleanup: true
   on:
     repo: jwvanderbeck/RealScience
     tags: true
     all_branches: true
+after_success:
+- make deploy
+env:
+  global:
+  - secure: CPb6gtX9hom8hbMFex85hf0AIdeJ8gQcwkF5czIme2LlejUQp0tGvbI6vV/ZfqIFwP1OTXgyfI6URGvHaLoKTqX2CCk9nymq9AKvBXqXlpWSQWcCEMQ05QH09MrjxQ79B9W7UJAxFC9AQ2GDPmqC6ZJWq+op+/wleO61cS5PmXU=
+  - secure: KMaBDwdz8PYzet8E9VWcCRgZnvTzMKLvjatzu+ExBRJuWB3kfc72JAGBIhu4EfAQcAYLft6uH9ZFFfxNK783qTuOcwNkzX7OoPxBrMKhVEwKVzucXuQ6PkzmBjbjMZul6R5zyiw3vp6YJjV1DbgAHrrp32Gn5oUccMMJWjJ9oC8=
+  - secure: TjvwFnCjeJ6ciU724uORbY3UFOmZrA55eqU8bQp9nV2nS+q8dpCib4o+3OP+jxy4Ll7ScO8zjCvLv1J8NWu4Y4Oolm3o8v4em39Ukmk2fWQ+rrr6mTbiut0Wb1alNZ8BCbGUpaZHHrAjxNYM0/P0cRW0o2odlxNd0F2xDeF94aY=
+  - secure: Dcj19bAh4XJAQKpkAp9P45TECoELxjJPDG7Kvxx2XowpEkvcs4wagFo6IJJEFcr+5vR0unQ1/8tpkYcjCRhGjZ8Mxj50vnLE/Laafkrxa3tTQf2ItuIoeQyDO7+9d5yTaMpDY4ejzpWXmnOquGCjJhl1cQOXBa//Zq3x/SAtvxU=
+  - secure: YF2YzyZIpWU5Po7t42NpRxJMBoOQfEkzH6sy9AmYceTg+AJBb0RjHbTN0pmyHhndMrjg7tpHEbXczR34G8HzcpANeAaZfJmy/GA6v917vXdfkfxCIsJW4AYR2/s1hl+F0RPE/Q7idxINaLyfsfAWn/AQHY7+VZrIXgBmrKXzEjY=
+  - secure: JqM+IMFiCSnJSFfqhflse4rt3iwhJZy5aNon97C/13m2p624zmSnZdRkSKKPHB3EcAAFyDEQlfwc+zp1SuamCwC5nZfBagB2yW8HZKPBU3fX5N59MHAjifP2Zxoowdhg/wGnI0Z70hXOYDv7QdFWdkYstI2pqlRga4V1JBq6XNg=
+  - secure: awOh/09RcLDX1+W09DBjL26t+m4UASL9lKK0EBmul728s2SKnQc8x+9dJVKrJmOM6qqGEQnKbdPTolmAkWIVTIUhRgayoqTBHJ57ffgCaozMe+gYkOXhTjZOE25lzm7xBQ16XwE0ZYQ2ZuuFEGPKCGYU3IyROva0EHVclaCR7vs=
