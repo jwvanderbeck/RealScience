@@ -88,6 +88,8 @@
     <Compile Include="UserSettings.cs" />
     <Compile Include="Conditions\RealScienceCondition_Crew.cs" />
     <Compile Include="RSScenario.cs" />
+    <Compile Include="ResearchData.cs" />
+    <Compile Include="RSInstrument.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
