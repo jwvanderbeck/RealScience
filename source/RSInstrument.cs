@@ -97,14 +97,12 @@ namespace RealScience
 
         public float GetModuleCost (float defaultCost, ModifierStagingSituation sit)
         {
-            return defaultCost;
-            // TODO: Need to work this out
-            // return baseCost * (sampleRateCost + bufferSizeCost + transferRateCost);
+            return currentCost;
         }
 
         public ModifierChangeWhen GetModuleCostChangeWhen ()
         {
-            throw new NotImplementedException ();
+            return ModifierChangeWhen.FIXED;
         }
 
         #endregion
