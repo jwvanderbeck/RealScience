@@ -22,42 +22,16 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="AfterBuild" command="cp ${TargetFile} ${TargetDir}/../../../GameData/RealScience/Plugins" />
-      </CustomCommands>
-    </CustomCommands>
+    <NoStdLib>true</NoStdLib>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <CustomCommands>
-      <CustomCommands>
-        <Command type="AfterBuild" command="cp ${TargetFile} ${TargetDir}/../../../GameData/RealScience/Plugins" />
-      </CustomCommands>
-    </CustomCommands>
+    <NoStdLib>true</NoStdLib>
   </PropertyGroup>
-  <ItemGroup>
-    <Reference Include="Assembly-CSharp">
-      <HintPath>..\..\..\Managed\Assembly-CSharp.dll</HintPath>
-    </Reference>
-    <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\..\..\Managed\Assembly-CSharp-firstpass.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Core" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine">
-      <HintPath>..\..\..\Managed\UnityEngine.dll</HintPath>
-    </Reference>
-  </ItemGroup>
   <ItemGroup>
     <Compile Include="Conditions\IScienceCondition.cs" />
     <Compile Include="Conditions\RealScienceCondition.cs" />
@@ -96,4 +70,37 @@
   <Target Name="AfterBuild">
   </Target>
   -->
+  <ItemGroup>
+    <Reference Include="Assembly-CSharp">
+      <HintPath>$(KSP_DLL_PATH)\Assembly-CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="KSPAssets">
+      <HintPath>$(KSP_DLL_PATH)\KSPAssets.dll</HintPath>
+    </Reference>
+    <Reference Include="KSPUtil">
+      <HintPath>$(KSP_DLL_PATH)\KSPUtil.dll</HintPath>
+    </Reference>
+    <Reference Include="mscorlib">
+      <HintPath>$(KSP_DLL_PATH)/mscorlib.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Core">
+      <HintPath>$(KSP_DLL_PATH)/System.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>$(KSP_DLL_PATH)/System.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(KSP_DLL_PATH)\UnityEngine.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(KSP_DLL_PATH)\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml">
+      <HintPath>$(KSP_DLL_PATH)\System.Xml.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq">
+      <HintPath>$(KSP_DLL_PATH)\System.Xml.Linq.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <Import Project="custom.targets" />
 </Project>

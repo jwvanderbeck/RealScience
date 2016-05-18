@@ -210,7 +210,7 @@ namespace RealScience
                         {
                             ResearchAndDevelopment.Instance.AddScience(recoveryValue, TransactionReasons.ScienceTransmission);
                             ScreenMessage statusMessage = new ScreenMessage(String.Format("[{0}] Experiment Recovered.", experimentTitle), 5.0f, ScreenMessageStyle.UPPER_LEFT);
-                            ScreenMessages.PostScreenMessage(statusMessage, true);
+                            ScreenMessages.PostScreenMessage(statusMessage);
                         }
                     }
                 }
@@ -339,7 +339,7 @@ namespace RealScience
                     // science is awarded by the transmission, so we don't need to do it here
                     // ResearchAndDevelopment.Instance.AddScience(scienceValue, TransactionReasons.ScienceTransmission);
                     ScreenMessage completionMessage = new ScreenMessage(String.Format("[{0}]: Transmission Completed", experimentTitle), 5.0f, ScreenMessageStyle.UPPER_LEFT);
-                    ScreenMessages.PostScreenMessage(completionMessage, true);
+                    ScreenMessages.PostScreenMessage(completionMessage);
                     state.CurrentState = ExperimentState.StateEnum.COMPLETED;
                     break;
                 case ExperimentState.StateEnum.FAILED:

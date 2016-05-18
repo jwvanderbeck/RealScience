@@ -6,6 +6,7 @@ using System.Linq;
 using KSPPluginFramework;
 
 using UnityEngine;
+using KSP.UI.Screens;
 
 namespace RealScience
 {
