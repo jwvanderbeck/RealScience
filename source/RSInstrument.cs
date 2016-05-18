@@ -5,7 +5,7 @@ using KSPPluginFramework;
 
 namespace RealScience
 {
-	public class RSInstrument : PartModuleExtended, IPartCostModifier
+    public class RSInstrument : PartModuleExtended, IPartCostModifier
 	{
 		// Basic Properties
 		// These properties define what type of scientific data the instrument collects, how fast it can collect it,
@@ -67,7 +67,6 @@ namespace RealScience
 		private float currentCost = 1.0f;
 		private float currentResourseCost = 1.0f;
 		private double lastTime = 0d;
-		private 
 
 		// Public Properties
 		public float Buffer {
@@ -94,11 +93,21 @@ namespace RealScience
 		}
 
 
-		//  IPartCostModifier Interface
-		public float GetModuleCost (float defaultCost)
-		{
-			return baseCost * (sampleRateCost + bufferSizeCost + transferRateCost);
-		}
+        #region IPartCostModifier implementation
+
+        public float GetModuleCost (float defaultCost, ModifierStagingSituation sit)
+        {
+            return defaultCost;
+            // TODO: Need to work this out
+            // return baseCost * (sampleRateCost + bufferSizeCost + transferRateCost);
+        }
+
+        public ModifierChangeWhen GetModuleCostChangeWhen ()
+        {
+            throw new NotImplementedException ();
+        }
+
+        #endregion
 
 		// KSP PartModule methods
 		public override void OnAwake ()
