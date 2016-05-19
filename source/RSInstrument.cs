@@ -6,200 +6,235 @@ using KSPPluginFramework;
 namespace RealScience
 {
     public class RSInstrument : PartModuleExtended, IPartCostModifier
-	{
-		// Basic Properties
-		// These properties define what type of scientific data the instrument collects, how fast it can collect it,
-		// how much it can store, etc.
-		[KSPField(isPersistant=true)]
-		public string sampleType = "undefined";
-		[KSPField(isPersistant=true)]
-		public float sampleRate = 1.0f;
-		[KSPField(isPersistant=true)]
-		public float bufferSize = 60.0f;
-		[KSPField(isPersistant=true)]
-		public float transferRate = 5.0f;
-		[KSPField(isPersistant=true)]
-		public string resourceUsed = "ElectricCharge";
-		[KSPField(isPersistant=true)]
-		public float resourceCost = 1.0f;
-		[KSPField(isPersistant=true)]
-		public bool alwaysEnabled = false;
-		[KSPField(isPersistant=true)]
-		public float baseCost = 1.0f;
-		// Multicast instruments can send one packet to multiple experiments
-		[KSPField(isPersistant=false)]
-		public bool multicast = false;
-		//
-		// GUI Properties
-		// These properties define how much flexability the player has in tweaking the basic properties in the GUI
-		// TODO Add properties to disable the individual controls if desired
-		[KSPField(isPersistant=false)]
-		public bool enableSampleRateGUI = true;
-		[KSPField(isPersistant=false)]
-		public float sampleRateMin = 0.5f;
-		[KSPField(isPersistant=false)]
-		public float sampleRateMax = 1.5f;
-		public FloatCurve sampleRateCost = null;
-		public FloatCurve sampleRateResourceCost = null;
+    {
+        // Basic Properties
+        // These properties define what type of scientific data the instrument collects, how fast it can collect it,
+        // how much it can store, etc.
+        [KSPField]
+        public string sampleType = "undefined";
+        [KSPField(isPersistant = true)]
+        public float sampleRate = 1.0f;
+        [KSPField(isPersistant = true)]
+        public float bufferSize = 60.0f;
+        [KSPField(isPersistant = true)]
+        public float transferRate = 5.0f;
+        [KSPField]
+        public string resourceUsed = "ElectricCharge";
+        [KSPField]
+        public float resourceBaseCost = 1.0f;
+        [KSPField]
+        public bool alwaysEnabled = false;
+        [KSPField]
+        public float baseCost = 1.0f;
+        // Multicast instruments can send one packet to multiple experiments
+        [KSPField]
+        public bool multicast = false;
+        //
+        // GUI Properties
+        // These properties define how much flexability the player has in tweaking the basic properties in the GUI
+        [KSPField]
+        public bool enableSampleRateGUI = true;
+        [KSPField]
+        public float sampleRateMin = 0.5f;
+        [KSPField]
+        public float sampleRateMax = 1.5f;
+        [KSPField]
+        public FloatCurve sampleRateCost = null;
+        [KSPField]
+        public FloatCurve sampleRateResourceCost = null;
 
-		[KSPField(isPersistant=false)]
-		public bool enableBufferSizeGUI = true;
-		[KSPField(isPersistant=false)]
-		public float bufferSizeMin = 10.0f;
-		[KSPField(isPersistant=false)]
-		public float bufferSizeMax = 120.0f;
-		public FloatCurve bufferSizeCost = null;
-		public FloatCurve bufferSizeResourceCost = null;
+        [KSPField]
+        public bool enableBufferSizeGUI = true;
+        [KSPField]
+        public float bufferSizeMin = 10.0f;
+        [KSPField]
+        public float bufferSizeMax = 120.0f;
+        [KSPField]
+        public FloatCurve bufferSizeCost = null;
+        [KSPField]
+        public FloatCurve bufferSizeResourceCost = null;
 
-		[KSPField(isPersistant=false)]
-		public bool enableTransferRateGUI = true;
-		[KSPField(isPersistant=false)]
-		public float transferRateMin = 1.0f;
-		[KSPField(isPersistant=false)]
-		public float transferRateMax = 10.0f;
-		public FloatCurve transferRateCost = null;
-		public FloatCurve transferRateResourceCost = null;
+        [KSPField]
+        public bool enableTransferRateGUI = true;
+        [KSPField]
+        public float transferRateMin = 1.0f;
+        [KSPField]
+        public float transferRateMax = 10.0f;
+        [KSPField]
+        public FloatCurve transferRateCost = null;
+        [KSPField]
+        public FloatCurve transferRateResourceCost = null;
 
 
-		// Private properties
-		private float sampleBuffer = 0f;
-		private bool instrumentEnabled = false;
-		private float currentCost = 1.0f;
-		private float currentResourseCost = 1.0f;
-		private double lastTime = 0d;
+        // Private properties
+        private float sampleBuffer = 0f;
+        private bool instrumentEnabled = false;
+        private float currentCost = 1.0f;
+        private float resourceCost = 1.0f;
 
-		// Public Properties
-		public float Buffer {
-			get { return sampleBuffer; }
-			private set { sampleBuffer = value; }
-		}
+        [KSPField(isPersistant = true)]
+        private double lastTime = 0d;
+        [KSPField(isPersistant = true)]
+        private double lastBufferTransferTime = 0d;
 
-		// Public Methods
-		public void Activate()
-		{
-			this.SetActive (true);
-		}
+        #region Public Interface
 
-		public void Deactivate()
-		{
-			this.SetActive(false);
-		}
+        public void Activate()
+        {
+            SetActive(true);
+        }
 
-		public bool SetActive(bool state)
-		{
-			bool lastState = instrumentEnabled;
-			instrumentEnabled = state;
-			return lastState;
-		}
+        public void Deactivate()
+        {
+            SetActive(false);
+        }
+
+        public bool SetActive(bool state)
+        {
+            bool lastState = instrumentEnabled;
+            instrumentEnabled = state;
+            enabled = state;
+            return lastState;
+        }
+            
+        /// <summary>
+        /// Gets samples from the buffer.  Samples can only be transfered in accordance with the transferRate of the instrument
+        /// </summary>
+        /// <returns>The actual number of samples removed from the buffer.  Due to storage or traansfer rate this may be less than requested.</returns>
+        /// <param name="desiredSampleCount">Desired sample count.</param>
+        public float GetSamplesFromBuffer(float desiredSampleCount)
+        {
+            if (!instrumentEnabled)
+                return 0f;
+            
+            double currentTime = Planetarium.GetUniversalTime();
+            double transferTime = currentTime - lastBufferTransferTime;
+            float actualSamples = Mathf.Min(desiredSampleCount, sampleBuffer);
+            actualSamples = Math.Min(actualSamples, (float)(transferTime * transferRate));
+            sampleBuffer -= actualSamples;
+            lastBufferTransferTime = currentTime;
+            return actualSamples;
+        }
+
+        #endregion
+
+        #region Internal Methods
+
+        protected void GenerateSamples(double time)
+        {
+            // determine how many samples we can produce this tick
+            float samplesGenerated = (float)(time * sampleRate);
+            // determine the resource cost of that many samples
+            float sampleCost = samplesGenerated * resourceCost;
+            // are there enough resources to pay or this?
+            float resourceAvailable = this.part.RequestResource(resourceUsed, sampleCost);
+            if (resourceAvailable < sampleCost)
+            {
+                // If we got less resource than what was needed to pay for the samples, we need to scale back how many samples we generate
+                samplesGenerated = resourceAvailable / resourceCost;
+            }
+            AddSamplesToBuffer(samplesGenerated);
+        }
+
+        /// <summary>
+        /// Adds the samples to buffer and returns the actual amount added
+        /// </summary>
+        /// <returns>The amount of samples actually addeed to the buffer, which due to space might be less than requested.</returns>
+        /// <param name="sampleCount">Amount of samples to add to the buffer.</param>
+        protected float AddSamplesToBuffer(float sampleCount)
+        {
+            float bufferSpace = bufferSize - sampleBuffer;
+            float samplesAdded = Mathf.Min(bufferSpace, sampleCount);
+            sampleBuffer += samplesAdded;
+            return samplesAdded;
+        }
+
+        #endregion
 
 
         #region IPartCostModifier implementation
 
-        public float GetModuleCost (float defaultCost, ModifierStagingSituation sit)
+        public float GetModuleCost(float defaultCost, ModifierStagingSituation sit)
         {
             return currentCost;
         }
 
-        public ModifierChangeWhen GetModuleCostChangeWhen ()
+        public ModifierChangeWhen GetModuleCostChangeWhen()
         {
             return ModifierChangeWhen.FIXED;
         }
 
         #endregion
 
-		// KSP PartModule methods
-		public override void OnAwake ()
-		{
-			base.OnAwake ();
-		}
+        #region PartModule implementation
 
-		public override void OnStart (StartState state)
-		{
-			base.OnStart (state);
-			Part prefab = this.part.partInfo.partPrefab;
-			foreach (PartModule pm in prefab.Modules)
-			{
-				RSInstrument modulePrefab = pm as RSInstrument;
-				// Read in non-persistent data from the prefab
-				if (modulePrefab != null)
-				{
-					// Sample Rate
-					enableSampleRateGUI = modulePrefab.enableSampleRateGUI;
-					sampleRateMin = modulePrefab.sampleRateMin;
-					sampleRateMax = modulePrefab.sampleRateMax;
-					if ((object)modulePrefab.sampleRateCost != null)
-						sampleRateCost = modulePrefab.sampleRateCost;
-					if ((object)modulePrefab.sampleRateResourceCost != null)
-						sampleRateResourceCost = modulePrefab.sampleRateResourceCost;
+        public override void OnAwake()
+        {
+            base.OnAwake();
+            // Create default FloatCurve objects
+            if (sampleRateCost == null)
+            {
+                sampleRateCost = new FloatCurve();
+                sampleRateCost.Add(0f, 1f);
+            }
+            if (sampleRateResourceCost == null)
+            {
+                sampleRateResourceCost = new FloatCurve();
+                sampleRateResourceCost.Add(0f, 1f);
+            }
+            if (bufferSizeCost == null)
+            {
+                bufferSizeCost = new FloatCurve();
+                bufferSizeCost.Add(0f, 1f);
+            }
+            if (bufferSizeResourceCost == null)
+            {
+                bufferSizeResourceCost = new FloatCurve();
+                bufferSizeResourceCost.Add(0f, 1f);
+            }
+            if (transferRateCost == null)
+            {
+                transferRateCost = new FloatCurve();
+                transferRateCost.Add(0f, 1f);
+            }
+            if (transferRateResourceCost == null)
+            {
+                transferRateResourceCost = new FloatCurve();
+                transferRateResourceCost.Add(0f, 1f);
+            }
+        }
 
-					// Buffer Size
-					enableBufferSizeGUI = modulePrefab.enableBufferSizeGUI;
-					bufferSizeMin = modulePrefab.bufferSizeMin;
-					bufferSizeMax = modulePrefab.bufferSizeMax;
-					if ((object)modulePrefab.bufferSizeCost != null)
-						bufferSizeCost = modulePrefab.bufferSizeCost;
-					if ((object)modulePrefab.bufferSizeResourceCost != null)
-						bufferSizeResourceCost = modulePrefab.bufferSizeResourceCost;
+        public override void OnStart(StartState state)
+        {
+            base.OnStart(state);
+        }
+            
+        public override void OnUpdate()
+        {
+            base.OnUpdate();
 
-					// Transfer Rate
-					enableTransferRateGUI = modulePrefab.enableTransferRateGUI;
-					transferRateMin = modulePrefab.transferRateMin;
-					transferRateMax = modulePrefab.transferRateMax;
-					if ((object)modulePrefab.transferRateCost != null)
-						transferRateCost = modulePrefab.transferRateCost;
-					if ((object)modulePrefab.transferRateResourceCost != null)
-						transferRateResourceCost = modulePrefab.transferRateResourceCost;
-				}
-			}
-		}
+            double currentTime = Planetarium.GetUniversalTime();
+            if (currentTime > lastTime + 1)
+            {
+                // generate samples and buffer them
+                double sampleTime = currentTime - lastTime;
+                GenerateSamples(sampleTime);
+                lastTime = currentTime;
+            }
+        }
 
-		public override void OnUpdate ()
-		{
-			base.OnUpdate ();
+        public override void OnLoad(ConfigNode node)
+        {
+            base.OnLoad(node);
+        }
 
-			double currentTime = Planetarium.GetUniversalTime ();
-			if (currentTime > lastTime + 1) 
-			{
-				// generate a sample and send it to attached experiments
-			}
-			lastTime = currentTime;
-		}
-			
-		public override void OnLoad (ConfigNode node)
-		{
-			base.OnLoad (node);
-			if (node.HasNode ("sampleRateCost")) {
-				sampleRateCost = new FloatCurve ();
-				sampleRateCost.Load(node.GetNode("sampleRateCost"));
-			}
-			if (node.HasNode ("sampleRateResourceCost")) {
-				sampleRateResourceCost = new FloatCurve ();
-				sampleRateResourceCost.Load(node.GetNode("sampleRateResourceCost"));
-			}
+        public override void OnSave(ConfigNode node)
+        {
+            base.OnSave(node);
+        }
 
-			if (node.HasNode ("bufferSizeCost")) {
-				bufferSizeCost = new FloatCurve ();
-				bufferSizeCost.Load(node.GetNode("bufferSizeCost"));
-			}
-			if (node.HasNode ("bufferSizeResourceCost")) {
-				bufferSizeResourceCost = new FloatCurve ();
-				bufferSizeResourceCost.Load(node.GetNode("bufferSizeResourceCost"));
-			}
+        #endregion
 
-			if (node.HasNode ("transferRateCost")) {
-				transferRateCost = new FloatCurve ();
-				transferRateCost.Load(node.GetNode("transferRateCost"));
-			}
-			if (node.HasNode ("transferRateResourceCost")) {
-				transferRateResourceCost = new FloatCurve ();
-				transferRateResourceCost.Load(node.GetNode("transferRateResourceCost"));
-			}
-		}
-
-		public override void OnSave (ConfigNode node)
-		{
-			base.OnSave (node);
-		}
-	}
+    }
 }
 
