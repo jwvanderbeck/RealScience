@@ -5,7 +5,7 @@ using KSPPluginFramework;
 
 namespace RealScience
 {
-    public class RSInstrument : PartModuleExtended, IPartCostModifier
+    public class RSInstrument : PartModule, IPartCostModifier
     {
         // Basic Properties
         // These properties define what type of scientific data the instrument collects, how fast it can collect it,
