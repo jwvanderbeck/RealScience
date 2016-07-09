@@ -27,7 +27,7 @@ namespace RealScience
         [KSPField]
         public float baseCost = 1.0f;
         // Multicast instruments can send one packet to multiple experiments
-        [KSPField]
+        [KSPField(isPersistant = true)]
         public bool multicast = false;
         //
         // GUI Properties
@@ -65,9 +65,16 @@ namespace RealScience
         [KSPField]
         public FloatCurve transferRateResourceCost = null;
 
+        [KSPField]
+        public bool enableMulticastGUI = true;
+        [KSPField]
+        public float multicastCost = 0.0f;
+        [KSPField]
+        public float multicastResourceCost = 0.0f;
+
 
         // Private properties
-        private float sampleBuffer = 0f;
+        private float sampleBuffer = 0.0f;
         private bool instrumentEnabled = false;
         private float currentCost = 1.0f;
         private float resourceCost = 1.0f;
